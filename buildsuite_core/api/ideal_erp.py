@@ -39,7 +39,6 @@ from buildsuite_core.ideal_erp.intelligence.company_intelligence import (
     analyze_projects,
 )
 from buildsuite_core.ideal_erp.intelligence.semantic_cost_match import match_cost
-from buildsuite_core.ideal_erp.project_finance import calculate_project_finance
 from buildsuite_core.ideal_erp.localization import (
     commercial_total,
     format_amount,
@@ -352,3 +351,11 @@ def project_financial_snapshot(project: str) -> dict:
     from buildsuite_core.api.project_finance_snapshot import get_project_financial_snapshot
 
     return get_project_financial_snapshot(project)
+
+
+@frappe.whitelist(methods=["POST"])
+def create_material_request_from_forecast(name: str) -> dict:
+    """Create/reuse the canonical ERPNext Material Request for forecast shortages."""
+    doc = frappe.get_doc("Material Forecast", name)
+    doc.check_permission("write")
+    return doc.create_material_request()
