@@ -3,6 +3,8 @@ name: IDEAIL capability smoke tests
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
@@ -25,5 +27,35 @@ jobs:
       - name: Compile IDEAIL capability layer
         run: python -m compileall -q buildsuite_core/ideal_erp buildsuite_core/api/ideal_erp.py
 
-      - name: Run IDEAIL capability tests
+      - name: Validate IDEAIL DocType JSON
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("buildsuite_core/ideal_erp/doctype")
+          files = list(root.rglob("*.json"))
+          assert files, "No IDEAIL DocType JSON files found"
+          for path in files:
+              data = json.loads(path.read_text(encoding="utf-8"))
+              assert data.get("doctype") == "DocType", path
+              assert data.get("name"), path
+              assert isinstance(data.get("fields", []), list), path
+          print(f"Validated {len(files)} IDEAIL DocType JSON files")
+          PY
+
+      - name: Verify no native capability is marked as an adapter placeholder
+        run: |
+          python - <<'PY'
+          from buildsuite_core.ideal_erp.registry import CAPABILITIES, validate_dependency_graph
+          assert validate_dependency_graph() == []
+          unresolved = [
+              name for name, meta in CAPABILITIES.items()
+              if meta.get("mode") not in {"native"}
+          ]
+          assert unresolved == [], unresolved
+          print(f"Validated {len(CAPABILITIES)} connected capabilities")
+          PY
+
+      - name: Run IDEAIL connected workflow tests
         run: python -m pytest -q buildsuite_core/ideal_erp/tests/test_core.py
