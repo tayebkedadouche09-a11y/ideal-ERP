@@ -1,0 +1,25 @@
+{
+  "creation":"2026-09-26 00:00:00.000000",
+  "doctype":"DocType",
+  "document_type":"Child Table",
+  "engine":"InnoDB",
+  "field_order":["boq_item_ref","description","uom","contract_qty","contract_rate","contract_amount","previous_qty_claimed","qty_this_period","cumulative_qty","amount_this_period","cumulative_amount","percent_complete"],
+  "fields":[
+    {"fieldname":"boq_item_ref","fieldtype":"Data","label":"BOQ Item / Reference"},
+    {"fieldname":"description","fieldtype":"Data","label":"Description","reqd":1,"in_list_view":1},
+    {"fieldname":"uom","fieldtype":"Link","label":"UOM","options":"UOM"},
+    {"fieldname":"contract_qty","fieldtype":"Float","label":"Contract Qty","reqd":1},
+    {"fieldname":"contract_rate","fieldtype":"Currency","label":"Contract Rate","reqd":1},
+    {"fieldname":"contract_amount","fieldtype":"Currency","label":"Contract Amount","read_only":1},
+    {"fieldname":"previous_qty_claimed","fieldtype":"Float","label":"Previous Qty Claimed","default":0},
+    {"fieldname":"qty_this_period","fieldtype":"Float","label":"Qty This Period","reqd":1,"in_list_view":1},
+    {"fieldname":"cumulative_qty","fieldtype":"Float","label":"Cumulative Qty","read_only":1},
+    {"fieldname":"amount_this_period","fieldtype":"Currency","label":"Amount This Period","read_only":1,"in_list_view":1},
+    {"fieldname":"cumulative_amount","fieldtype":"Currency","label":"Cumulative Amount","read_only":1},
+    {"fieldname":"percent_complete","fieldtype":"Percent","label":"% Complete","read_only":1,"in_list_view":1}
+  ],
+  "istable":1,
+  "module":"IDEAIL ERP",
+  "name":"IPC Item",
+  "owner":"Administrator"
+}
