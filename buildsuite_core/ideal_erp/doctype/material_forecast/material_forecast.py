@@ -6,6 +6,102 @@ from buildsuite_core.ideal_erp.integrated_flow import build_material_plan
 
 
 class MaterialForecast(Document):
+    @classmethod
+    def from_approved_boq(cls, boq_name, waste_pct=5):
+        boq = frappe.get_doc("BOQ", boq_name)
+        if boq.status != "Approved":
+            frappe.throw("Only an Approved BOQ can create a material forecast.")
+
+        item_rows = frappe.get_all(
+            "BOQ Item",
+            filters={"boq": boq_name, "cost_head": "Material"},
+            fields=["description", "unit", "planned_qty", "rate", "code"],
+            order_by="code asc",
+        )
+        catalog_rows = frappe.get_all(
+            "Item",
+            fields=["name", "item_name", "description", "stock_uom"],
+            filters={"disabled": 0, "is_stock_item": 1},
+            limit_page_length=5000,
+        )
+        catalog = [
+            {
+                "item_code": item.name,
+                "description": f"{item.item_name or ''} {item.description or ''}".strip(),
+            }
+            for item in catalog_rows
+        ]
+
+        from buildsuite_core.ideal_erp.intelligence.semantic_cost_match import match_cost
+
+        forecast = frappe.new_doc("Material Forecast")
+        forecast.forecast_title = f"Material Forecast — {boq.title or boq.name}"
+        forecast.project = boq.project
+        forecast.boq_ref = boq.name
+        forecast.company = boq.company or frappe.db.get_value("Project", boq.project, "company")
+        forecast.status = "Draft"
+
+        unresolved = []
+        matched = []
+        for row in item_rows:
+            candidates = match_cost(row.description or row.code, catalog, limit=3)
+            best = candidates[0] if candidates else None
+            if not best or best.score < 0.20:
+                unresolved.append(
+                    {
+                        "boq_code": row.code,
+                        "description": row.description,
+                        "candidates": [
+                            {
+                                "item_code": candidate.item_code,
+                                "description": candidate.description,
+                                "score": candidate.score,
+                            }
+                            for candidate in candidates
+                        ],
+                    }
+                )
+                continue
+
+            item = next((candidate for candidate in catalog_rows if candidate.name == best.item_code), None)
+            if not item:
+                unresolved.append(
+                    {"boq_code": row.code, "description": row.description, "candidates": []}
+                )
+                continue
+
+            forecast.append(
+                "items",
+                {
+                    "item_code": item.name,
+                    "item_name": item.item_name,
+                    "uom": row.unit or item.stock_uom,
+                    "boq_qty": row.planned_qty,
+                    "waste_factor": waste_pct,
+                    "estimated_rate": row.rate,
+                },
+            )
+            matched.append(
+                {
+                    "boq_code": row.code,
+                    "item_code": item.name,
+                    "score": best.score,
+                }
+            )
+
+        if not forecast.items:
+            frappe.throw("No BOQ material lines could be matched to stock Items.")
+
+        forecast.insert(ignore_permissions=True)
+        return {
+            "name": forecast.name,
+            "project": forecast.project,
+            "boq": forecast.boq_ref,
+            "matched": matched,
+            "unresolved": unresolved,
+            "requires_human_confirmation": bool(unresolved),
+        }
+
     def validate(self):
         self._recalculate_plan()
 
