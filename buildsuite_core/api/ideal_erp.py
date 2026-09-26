@@ -811,3 +811,108 @@ def create_quotation_from_resin_estimate(customer: str, estimate: dict, project:
         "margin_percent": margin,
         "source": "resin_epoxy_estimator",
     }
+
+
+@frappe.whitelist()
+def approval_center(limit: int = 100) -> dict:
+    """Return actionable approval/workflow records for the current user."""
+    from frappe.model.workflow import get_transitions, get_workflow, get_workflow_name
+    from frappe.utils import quote
+
+    specs = [
+        ("Stage Planning", "workflow_state", {"Pending Approval"}),
+        ("Scope Change Order", "status", {"Pending Approval"}),
+        ("Material Request", "workflow_state", {"Pending Approval"}),
+        ("Interim Payment Certificate", "status", {"Submitted"}),
+        ("Retention Release", "status", {"Draft"}),
+        ("Sales Invoice", "workflow_state", {"Pending Approval"}),
+        ("Purchase Order", "workflow_state", {"Pending Approval"}),
+        ("Subcontractor Bill", "workflow_state", {"Pending Approval"}),
+    ]
+
+    items = []
+    max_rows = max(1, min(int(limit), 250))
+
+    for doctype, fallback_state_field, fallback_states in specs:
+        if not frappe.db.exists("DocType", doctype):
+            continue
+
+        workflow_name = get_workflow_name(doctype)
+        if workflow_name:
+            workflow = get_workflow(doctype)
+            state_field = workflow.workflow_state_field
+            rows = frappe.get_list(
+                doctype,
+                fields=["name", state_field, "modified"],
+                order_by="modified desc",
+                limit_page_length=max_rows,
+            )
+            for row in rows:
+                try:
+                    doc = frappe.get_doc(doctype, row.name)
+                    doc.check_permission("read")
+                    transitions = get_transitions(doc, workflow)
+                except Exception:
+                    continue
+                if not transitions:
+                    continue
+                actions = [
+                    {
+                        "action": transition.get("action"),
+                        "next_state": transition.get("next_state"),
+                    }
+                    for transition in transitions
+                ]
+                items.append(
+                    {
+                        "doctype": doctype,
+                        "name": row.name,
+                        "state": row.get(state_field),
+                        "title": row.get("title")
+                        or row.get("project_name")
+                        or row.get("subject")
+                        or row.name,
+                        "modified": row.modified,
+                        "actions": actions,
+                        "route": f"/records/{quote(doctype)}/{quote(row.name)}",
+                        "source": "workflow",
+                    }
+                )
+            continue
+
+        if not frappe.get_meta(doctype).has_field(fallback_state_field):
+            continue
+
+        rows = frappe.get_list(
+            doctype,
+            filters={fallback_state_field: ["in", list(fallback_states)]},
+            fields=["name", fallback_state_field, "modified"],
+            order_by="modified desc",
+            limit_page_length=max_rows,
+        )
+        for row in rows:
+            title = (
+                row.get("title")
+                or row.get("project_name")
+                or row.get("subject")
+                or row.name
+            )
+            items.append(
+                {
+                    "doctype": doctype,
+                    "name": row.name,
+                    "state": row.get(fallback_state_field),
+                    "title": title,
+                    "modified": row.modified,
+                    "actions": [],
+                    "route": f"/records/{quote(doctype)}/{quote(row.name)}",
+                    "source": "document_state",
+                }
+            )
+
+    items.sort(key=lambda item: str(item.get("modified") or ""), reverse=True)
+    return {
+        "total": len(items),
+        "items": items[:max_rows],
+        "supported": [doctype for doctype, _, _ in specs if frappe.db.exists("DocType", doctype)],
+    }
