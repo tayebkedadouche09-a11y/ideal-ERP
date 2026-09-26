@@ -498,3 +498,39 @@ def create_material_request_from_forecast(name: str) -> dict:
     doc = frappe.get_doc("Material Forecast", name)
     doc.check_permission("write")
     return doc.create_material_request()
+
+
+@frappe.whitelist()
+def project_360(project: str) -> dict:
+    """Return one live project view assembled from canonical module sources."""
+    if not project:
+        frappe.throw("Project is required.")
+
+    from buildsuite_core.api import boq_actuals, cost_report, project_dashboard
+
+    dashboard = project_dashboard.get_project_dashboard(project)
+    cost = cost_report.cost_vs_budget_by_cost_code(project)
+    actuals = boq_actuals.get_actuals_summary(project)
+    finance = project_financial_snapshot(project)
+
+    return {
+        "project": project,
+        "dashboard": dashboard,
+        "finance": finance,
+        "cost_control": cost,
+        "actuals": actuals,
+        "connected_sources": [
+            "Project",
+            "BOQ",
+            "Tasks",
+            "Material Forecast",
+            "Material Request",
+            "Purchase Order",
+            "Material Consumption / Stock Entry",
+            "Sales Invoice",
+            "Payment Entry",
+            "Scope Change Order",
+            "Project Finance",
+            "Company Intelligence",
+        ],
+    }
