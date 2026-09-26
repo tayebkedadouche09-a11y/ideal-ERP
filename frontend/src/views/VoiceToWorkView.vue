@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, ref } from "vue";
-import { DeskPage } from "@/components/desk";
+import DeskPage from "@/components/desk/DeskPage.vue";
 import DeskField from "@/components/desk/DeskField.vue";
 import DeskInput from "@/components/desk/DeskInput.vue";
 import DeskSearchableSelect from "@/components/desk/DeskSearchableSelect.vue";
