@@ -23,6 +23,9 @@ rsync -a --delete \
   --exclude 'buildsuite_core/api/project_finance_snapshot.py' \
   --exclude 'frontend/src/data/project360Api.js' \
   --exclude 'frontend/src/views/project-detail/tabs/OverviewTab.vue' \
+  --exclude 'frontend/src/views/PlaceholderView.vue' \
+  --exclude 'frontend/src/views/BoqDetailView.vue' \
+  --exclude 'frontend/src/utils/boqApi.js' \
   "$WORK/buildsuite/" "$ROOT/"
 
 echo "==> Applying IDEAIL product identity"
