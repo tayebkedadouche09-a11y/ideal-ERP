@@ -1,55 +1,30 @@
 {
   "product": "IDEAIL ERP",
-  "sources": [
+  "runtime": "Frappe/ERPNext v16",
+  "canonical_source": "tayebkedadouche09-a11y/Ideal-tayeb@develop",
+  "feature_sources": [
     {
-      "repo": "tayebkedadouche09-a11y/Ideal-tayeb",
-      "role": "canonical foundation",
-      "version": "develop",
-      "selected": [
-        "ERPNext v16 construction execution",
-        "BOQ",
-        "cost codes",
-        "schedule",
-        "procurement",
-        "subcontract",
-        "workforce",
-        "equipment",
-        "project finance"
-      ]
-    },
-    {
-      "repo": "tayebkedadouche09-a11y/ideal-tayeb1",
-      "role": "selective port source",
-      "version": "master",
-      "selected": [
-        "client progress billing",
+      "source": "tayebkedadouche09-a11y/ideal-tayeb1@master",
+      "ports": [
+        "progress billing",
         "retention",
-        "material planning",
-        "compact construction workflows"
-      ],
-      "excluded": [
-        "duplicate ERP/project/BOQ/accounting engines"
+        "material planning"
       ]
     },
     {
-      "repo": "tayebkedadouche09-a11y/Ideal-tayeb2",
-      "role": "capability reference and selective port source",
-      "version": "main",
-      "selected": [
-        "AI estimating",
+      "source": "tayebkedadouche09-a11y/Ideal-tayeb2@main",
+      "ports": [
+        "AI estimation",
         "semantic cost matching",
-        "advanced schedule",
+        "advanced scheduling",
         "EVM/5D",
         "risk",
         "change intelligence",
         "voice/evidence",
         "documents/CDE",
         "CAD/BIM/takeoff"
-      ],
-      "excluded": [
-        "duplicate ERP/accounting/project core"
       ]
     }
   ],
-  "rule": "one canonical implementation per capability"
+  "rule": "No parallel ERP, project, BOQ, stock or accounting engines."
 }
