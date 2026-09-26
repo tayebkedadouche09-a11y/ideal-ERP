@@ -91,8 +91,10 @@ class MaterialForecast(Document):
             items=frappe.as_json(payload),
         )
         self.material_request_ref = result["name"]
+        self.status = "Partially Procured" if any(flt(row.already_ordered_qty) > 0 for row in self.items) else "Approved"
         self.procurement_status = "Request Draft"
         self.db_set("material_request_ref", result["name"])
+        self.db_set("status", self.status)
         self.db_set("procurement_status", "Request Draft")
         return {"name": result["name"], "reused": False}
 
