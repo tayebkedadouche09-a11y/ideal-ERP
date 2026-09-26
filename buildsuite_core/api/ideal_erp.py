@@ -39,6 +39,7 @@ from buildsuite_core.ideal_erp.intelligence.company_intelligence import (
     analyze_projects,
 )
 from buildsuite_core.ideal_erp.intelligence.semantic_cost_match import match_cost
+from buildsuite_core.ideal_erp.project_finance import calculate_project_finance
 from buildsuite_core.ideal_erp.localization import (
     commercial_total,
     format_amount,
@@ -343,3 +344,11 @@ def commercial_calculation(
         tax_rate_percent=tax_rate_percent,
         discount_percent=discount_percent,
     )
+
+
+@frappe.whitelist()
+def project_financial_snapshot(project: str) -> dict:
+    """Read the live ERPNext/BuildSuite project finance reconciliation."""
+    from buildsuite_core.api.project_finance_snapshot import get_project_financial_snapshot
+
+    return get_project_financial_snapshot(project)
