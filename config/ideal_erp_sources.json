@@ -1,0 +1,55 @@
+{
+  "product": "IDEAIL ERP",
+  "sources": [
+    {
+      "repo": "tayebkedadouche09-a11y/Ideal-tayeb",
+      "role": "canonical foundation",
+      "version": "develop",
+      "selected": [
+        "ERPNext v16 construction execution",
+        "BOQ",
+        "cost codes",
+        "schedule",
+        "procurement",
+        "subcontract",
+        "workforce",
+        "equipment",
+        "project finance"
+      ]
+    },
+    {
+      "repo": "tayebkedadouche09-a11y/ideal-tayeb1",
+      "role": "selective port source",
+      "version": "master",
+      "selected": [
+        "client progress billing",
+        "retention",
+        "material planning",
+        "compact construction workflows"
+      ],
+      "excluded": [
+        "duplicate ERP/project/BOQ/accounting engines"
+      ]
+    },
+    {
+      "repo": "tayebkedadouche09-a11y/Ideal-tayeb2",
+      "role": "capability reference and selective port source",
+      "version": "main",
+      "selected": [
+        "AI estimating",
+        "semantic cost matching",
+        "advanced schedule",
+        "EVM/5D",
+        "risk",
+        "change intelligence",
+        "voice/evidence",
+        "documents/CDE",
+        "CAD/BIM/takeoff"
+      ],
+      "excluded": [
+        "duplicate ERP/accounting/project core"
+      ]
+    }
+  ],
+  "rule": "one canonical implementation per capability"
+}
