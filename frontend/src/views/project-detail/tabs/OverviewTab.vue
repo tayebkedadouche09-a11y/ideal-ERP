@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { RouterLink } from "vue-router";
 import { useDataStore } from "@/stores";
 import StatusBadge from "@/components/StatusBadge.vue";
@@ -7,6 +7,7 @@ import UserAvatar from "@/components/UserAvatar.vue";
 import { fmtDate, fmtCompactINR } from "@/utils/format";
 import { getWorkspaceIconPath } from "@/utils/workspaceIcons";
 import { usePermissions } from "@/composables/usePermissions";
+import { getProject360 } from "@/data/project360Api";
 
 const { canEdit } = usePermissions();
 
@@ -21,6 +22,34 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["edit"]);
+
+const live360 = ref(null);
+const live360Loading = ref(false);
+const live360Error = ref("");
+
+async function loadProject360(projectId) {
+	if (!projectId) {
+		live360.value = null;
+		return;
+	}
+	live360Loading.value = true;
+	live360Error.value = "";
+	try {
+		live360.value = await getProject360(projectId);
+	} catch (err) {
+		live360Error.value = err?.message || "Project 360 is unavailable.";
+	} finally {
+		live360Loading.value = false;
+	}
+}
+
+watch(() => props.project?.id, loadProject360, { immediate: true });
+
+const liveFinance = computed(() => live360.value?.finance?.finance || {});
+const liveInvoices = computed(() => live360.value?.finance?.invoices || {});
+const liveForecast = computed(() => live360.value?.material_forecast || null);
+const liveInsights = computed(() => (live360.value?.intelligence || []).slice(0, 3));
+
 
 // The Progress Report is the one in-app report (its own project-scoped route). Every other
 // tile links to the report in its owning workspace with `?project=<id>` so the report opens
@@ -73,6 +102,92 @@ function deviationColor(pct) {
 
 <template>
 	<div class="pt-5">
+		<!-- Live Project 360 — one server-side source joining execution, commercial, stock/procurement and intelligence. -->
+		<section
+			class="bg-white border border-ink-200 overflow-hidden mb-5"
+			style="border-radius: 10px"
+		>
+			<header
+				class="px-5 py-3 bg-gradient-to-r from-brand-50 to-white border-b border-ink-100 flex items-center gap-2"
+			>
+				<svg
+					class="w-4 h-4 text-ink-700"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="1.8"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+					v-html="getWorkspaceIconPath('activity')"
+				/>
+				<div>
+					<h3 class="text-sm font-semibold text-ink-900">Live Project 360</h3>
+					<p class="text-[11px] text-ink-500">One connected view of execution, money, supply and intelligence.</p>
+				</div>
+			</header>
+
+			<div v-if="live360Loading" class="px-5 py-5 text-xs text-ink-400">
+				Loading live project data…
+			</div>
+			<div v-else-if="live360Error" class="px-5 py-5 text-xs text-danger-700">
+				{{ live360Error }}
+			</div>
+			<div v-else-if="live360" class="p-4">
+				<div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+					<div class="border border-ink-100 rounded-lg p-3">
+						<div class="text-[10px] uppercase tracking-wider text-ink-500">Contract</div>
+						<div class="text-sm font-semibold text-ink-900 mt-1 tabular-nums">{{ fmtCompactINR(live360.finance?.contract_value || 0) }}</div>
+					</div>
+					<div class="border border-ink-100 rounded-lg p-3">
+						<div class="text-[10px] uppercase tracking-wider text-ink-500">Actual cost</div>
+						<div class="text-sm font-semibold text-ink-900 mt-1 tabular-nums">{{ fmtCompactINR(live360.finance?.actual_cost || 0) }}</div>
+					</div>
+					<div class="border border-ink-100 rounded-lg p-3">
+						<div class="text-[10px] uppercase tracking-wider text-ink-500">Invoiced</div>
+						<div class="text-sm font-semibold text-ink-900 mt-1 tabular-nums">{{ fmtCompactINR(liveInvoices.gross_invoiced || 0) }}</div>
+					</div>
+					<div class="border border-ink-100 rounded-lg p-3">
+						<div class="text-[10px] uppercase tracking-wider text-ink-500">Outstanding</div>
+						<div class="text-sm font-semibold text-ink-900 mt-1 tabular-nums">{{ fmtCompactINR(liveInvoices.outstanding || 0) }}</div>
+					</div>
+					<div class="border border-ink-100 rounded-lg p-3">
+						<div class="text-[10px] uppercase tracking-wider text-ink-500">Projected profit</div>
+						<div class="text-sm font-semibold mt-1 tabular-nums" :class="liveFinance.projected_profit_position >= 0 ? 'text-success-700' : 'text-danger-700'">
+							{{ fmtCompactINR(liveFinance.projected_profit_position || 0) }}
+						</div>
+					</div>
+				</div>
+
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+					<div class="border border-ink-100 rounded-lg p-3">
+						<div class="text-[10px] uppercase tracking-wider text-ink-500 mb-2">Material & procurement</div>
+						<div v-if="liveForecast" class="text-xs text-ink-700">
+							<div class="flex items-center justify-between gap-3">
+								<span>Forecast</span><span class="font-medium">{{ liveForecast.status }}</span>
+							</div>
+							<div class="flex items-center justify-between gap-3 mt-1.5">
+								<span>Procurement</span><span class="font-medium">{{ liveForecast.procurement_status }}</span>
+							</div>
+							<div v-if="liveForecast.material_request_ref" class="text-[11px] text-brand-700 mt-2">
+								Material Request: {{ liveForecast.material_request_ref }}
+							</div>
+						</div>
+						<div v-else class="text-xs text-ink-400">No material forecast created yet.</div>
+					</div>
+
+					<div class="border border-ink-100 rounded-lg p-3">
+						<div class="text-[10px] uppercase tracking-wider text-ink-500 mb-2">Company Intelligence</div>
+						<div v-if="liveInsights.length" class="space-y-2">
+							<div v-for="item in liveInsights" :key="item.kind + item.message" class="text-xs text-ink-700">
+								<span class="font-medium text-ink-900">{{ item.kind }}</span> · {{ item.message }}
+							</div>
+						</div>
+						<div v-else class="text-xs text-success-700">No connected intelligence signals currently raised.</div>
+					</div>
+				</div>
+			</div>
+		</section>
 		<!-- Summary strip -->
 		<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
 			<!-- Client -->
