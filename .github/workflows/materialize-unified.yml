@@ -1,0 +1,40 @@
+name: Materialize IDEAIL unified source
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout IDEAIL ERP
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Materialize canonical construction engine
+        shell: bash
+        run: |
+          chmod +x scripts/materialize_unified.sh
+          ./scripts/materialize_unified.sh
+
+      - name: Commit unified tree
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "IDEAIL ERP Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Unified tree already materialized."
+            exit 0
+          fi
+          git commit -m "feat: materialize IDEAIL unified construction core [skip ci]"
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push origin HEAD:main
