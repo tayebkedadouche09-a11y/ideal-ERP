@@ -11,6 +11,7 @@ import { useActiveCompany } from "@/composables/useActiveCompany";
 import { getWorkspaceIconPath } from "@/utils/workspaceIcons";
 import { fmtCompactINR } from "@/utils/format";
 import { getHomeDashboard } from "@/data/homeDashboardApi";
+import { getCompanyIntelligence } from "@/data/companyIntelligenceApi";
 
 const store = useDataStore();
 const session = useSessionStore();
@@ -18,6 +19,7 @@ const { userName: resolveUserName } = useUserNames();
 const activeCompany = useActiveCompany();
 
 const dash = ref(null);
+const companyIntel = ref(null);
 async function load() {
 	try {
 		dash.value = await getHomeDashboard();
@@ -25,10 +27,24 @@ async function load() {
 		dash.value = null;
 	}
 }
-onMounted(load);
+
+async function loadCompanyIntel() {
+	try {
+		companyIntel.value = await getCompanyIntelligence();
+	} catch {
+		companyIntel.value = null;
+	}
+}
+onMounted(() => {
+	load();
+	loadCompanyIntel();
+});
 // The dashboard is scoped to the working company (get_home_dashboard → default_company); reload it
 // when the switcher changes so the home snapshot follows the company.
-watch(activeCompany, load);
+watch(activeCompany, () => {
+	load();
+	loadCompanyIntel();
+});
 
 const snapshot = computed(() => dash.value?.snapshot || []);
 const alerts = computed(() => dash.value?.alerts || []);
