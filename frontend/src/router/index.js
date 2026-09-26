@@ -351,6 +351,11 @@ const routes = [
 				component: () => import("@/views/workspaces/SiteExecutionWorkspace.vue"),
 			},
 			{
+				path: "voice-to-work",
+				name: "voice-to-work",
+				component: () => import("@/views/VoiceToWorkView.vue"),
+			},
+			{
 				path: "project-dashboard",
 				name: "project-dashboard",
 				component: () => import("@/views/workspaces/ProjectDashboardView.vue"),
