@@ -400,6 +400,45 @@ def build_project_snapshot(
     }
 
 
+def calculate_project_finance(
+    *,
+    contract_value: float,
+    invoiced_net: float,
+    outstanding_gross: float,
+    actual_cost: float,
+    open_commitment: float = 0.0,
+) -> dict[str, Any]:
+    """Reconcile commercial value, receivable, recognised cost and open commitments.
+
+    Accounting remains in ERPNext; this helper only derives project-management metrics.
+    """
+    contract = max(0.0, float(contract_value))
+    invoiced = max(0.0, float(invoiced_net))
+    outstanding = max(0.0, float(outstanding_gross))
+    cost = max(0.0, float(actual_cost))
+    commitment = max(0.0, float(open_commitment))
+
+    earned = min(contract, invoiced) if contract else invoiced
+    unbilled = max(0.0, contract - invoiced)
+    gross_profit = invoiced - cost
+    margin_pct = gross_profit / invoiced * 100.0 if invoiced else 0.0
+    projected_cost = cost + commitment
+
+    return {
+        "earned_commercial_value": _money(earned),
+        "unbilled_contract_value": _money(unbilled),
+        "invoiced_net": _money(invoiced),
+        "outstanding": _money(outstanding),
+        "estimated_cash_collected": _money(max(0.0, invoiced - outstanding)),
+        "actual_cost": _money(cost),
+        "gross_profit_on_invoiced": _money(gross_profit),
+        "margin_percent_on_invoiced": round(margin_pct, 4),
+        "open_commitment": _money(commitment),
+        "projected_cost_position": _money(projected_cost),
+        "projected_profit_position": _money(invoiced - projected_cost),
+    }
+
+
 def calculate_evm(rows: Iterable[dict[str, Any]]) -> dict[str, Any]:
     """Calculate EVM/5D metrics without becoming an accounting ledger."""
     bac = pv = ev = ac = 0.0
