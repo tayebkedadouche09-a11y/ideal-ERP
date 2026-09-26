@@ -13,6 +13,7 @@ CANONICAL_DOMAINS = {
     "stock": "ERPNext",
     "commercial_posting": "ERPNext",
     "documents": "Frappe File/Document",
+    "project_finance": "ERPNext + BuildSuite Core",
 }
 
 CAPABILITIES = {
@@ -39,6 +40,7 @@ CAPABILITIES = {
     "photos": {"source": "Ideal-tayeb2", "mode": "native", "dependencies": ["project_execution", "documents"]},
     "approvals": {"source": "IDEAIL", "mode": "native", "dependencies": ["project_execution", "documents"]},
     "site_inventory": {"source": "Ideal-tayeb2", "mode": "native", "dependencies": ["material_planning", "stock"]},
+    "project_360": {"source": "IDEAIL", "mode": "native", "dependencies": ["project_execution", "boq", "procurement", "project_finance", "accounting", "stock"]},
 }
 
 
