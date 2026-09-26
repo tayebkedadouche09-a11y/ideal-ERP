@@ -607,7 +607,7 @@ def create_material_forecast_from_boq(boq: str, waste_pct: float = 5) -> dict:
 
 
 @frappe.whitelist(methods=["POST"])
-def create_quotation_from_resin_estimate(customer: str, estimate: dict, project: str | None = None, title: str = "Resin / Epoxy Works", validity_days: int = 30) -> dict:
+def create_quotation_from_resin_estimate(customer: str, estimate: dict, project: str | None = None, title: str = "Resin / Epoxy Works", validity_days: int = 30, margin_percent: float = 20) -> dict:
     """Create a native ERPNext Quotation draft from a confirmed resin estimate."""
     if not customer:
         frappe.throw("Customer is required.")
@@ -639,7 +639,10 @@ def create_quotation_from_resin_estimate(customer: str, estimate: dict, project:
     material_cost = flt(estimate.get("material_cost"))
     labor_cost = flt(estimate.get("labor_cost"))
     equipment_cost = flt(estimate.get("equipment_cost"))
-    total_price = flt(estimate.get("quoted_total") or estimate.get("selling_total") or total_cost)
+    margin = flt(margin_percent)
+    if margin < 0:
+        frappe.throw("Margin cannot be negative.")
+    total_price = total_cost * (1 + margin / 100)
 
     if total_price <= 0:
         frappe.throw("The estimate must produce a quotation amount greater than zero.")
@@ -665,5 +668,6 @@ def create_quotation_from_resin_estimate(customer: str, estimate: dict, project:
         "project": project,
         "total_cost": total_cost,
         "quoted_total": total_price,
+        "margin_percent": margin,
         "source": "resin_epoxy_estimator",
     }
