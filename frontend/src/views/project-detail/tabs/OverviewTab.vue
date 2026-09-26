@@ -177,14 +177,41 @@ function deviationColor(pct) {
 					</div>
 
 					<div class="border border-ink-100 rounded-lg p-3">
-						<div class="text-[10px] uppercase tracking-wider text-ink-500 mb-2">Company Intelligence</div>
-						<div v-if="liveInsights.length" class="space-y-2">
-							<div v-for="item in liveInsights" :key="item.kind + item.message" class="text-xs text-ink-700">
-								<span class="font-medium text-ink-900">{{ item.kind }}</span> · {{ item.message }}
+						<div class="text-[10px] uppercase tracking-wider text-ink-500 mb-2">Control signals</div>
+						<div class="grid grid-cols-2 gap-3">
+							<div>
+								<div class="text-[10px] text-ink-500 uppercase">CPI</div>
+								<div class="text-sm font-semibold text-ink-900">{{ Number(live360.evm?.cpi || 0).toFixed(2) }}</div>
+							</div>
+							<div>
+								<div class="text-[10px] text-ink-500 uppercase">SPI</div>
+								<div class="text-sm font-semibold text-ink-900">{{ Number(live360.evm?.spi || 0).toFixed(2) }}</div>
+							</div>
+							<div>
+								<div class="text-[10px] text-ink-500 uppercase">Risk</div>
+								<div class="text-sm font-semibold capitalize" :class="live360.risk?.level === 'high' ? 'text-danger-700' : live360.risk?.level === 'medium' ? 'text-warning-700' : 'text-success-700'">
+									{{ live360.risk?.level || "low" }} · {{ Number(live360.risk?.score || 0).toFixed(0) }}
+								</div>
+							</div>
+							<div>
+								<div class="text-[10px] text-ink-500 uppercase">Critical tasks</div>
+								<div class="text-sm font-semibold text-ink-900">{{ (live360.schedule?.critical_tasks || []).length }}</div>
 							</div>
 						</div>
-						<div v-else class="text-xs text-success-700">No connected intelligence signals currently raised.</div>
+						<div v-if="live360.changes" class="mt-3 text-[11px] text-ink-500">
+							{{ live360.changes.pending_count }} pending change{{ live360.changes.pending_count === 1 ? "" : "s" }} · {{ fmtCompactINR(live360.changes.approved_cost_impact || 0) }} approved impact
+						</div>
 					</div>
+				</div>
+
+				<div class="border border-ink-100 rounded-lg p-3 mt-4">
+					<div class="text-[10px] uppercase tracking-wider text-ink-500 mb-2">Company Intelligence</div>
+					<div v-if="liveInsights.length" class="space-y-2">
+						<div v-for="item in liveInsights" :key="item.kind + item.message" class="text-xs text-ink-700">
+							<span class="font-medium text-ink-900">{{ item.kind }}</span> · {{ item.message }}
+						</div>
+					</div>
+					<div v-else class="text-xs text-success-700">No connected intelligence signals currently raised.</div>
 				</div>
 			</div>
 		</section>
