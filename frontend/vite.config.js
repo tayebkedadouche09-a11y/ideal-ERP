@@ -20,10 +20,8 @@ function frappeBackend() {
 	return "http://localhost:8000";
 }
 
-export default defineConfig(({ command }) => {
-	const isVercel = process.env.VERCEL === "1";
-	return {
-	base: command === "build" && !isVercel ? "/assets/buildsuite_core/frontend/" : "/",
+export default defineConfig(({ command }) => ({
+	base: command === "build" ? "/assets/buildsuite_core/frontend/" : "/",
 	// __FRAPPE_DEV_HOST__ — the dev-only Frappe backend URL (from the bench config),
 	// used by getFrappeHost() for cross-origin login/logout/desk redirects in dev.
 	// Empty in production builds, so no host is baked into the shipped bundle.
@@ -98,9 +96,7 @@ export default defineConfig(({ command }) => {
 		include: ["debug"],
 	},
 	build: {
-		outDir: isVercel
-			? path.resolve(__dirname, "./dist")
-			: path.resolve(__dirname, "../buildsuite_core/public/frontend"),
+		outDir: path.resolve(__dirname, "../buildsuite_core/public/frontend"),
 		emptyOutDir: true,
 		manifest: "manifest.json",
 		sourcemap: true,
@@ -118,5 +114,4 @@ export default defineConfig(({ command }) => {
 			},
 		},
 	},
-};
-});
+}));
