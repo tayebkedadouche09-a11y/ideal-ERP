@@ -26,6 +26,7 @@ rsync -a --delete \
   --exclude 'frontend/src/views/PlaceholderView.vue' \
   --exclude 'frontend/src/views/BoqDetailView.vue' \
   --exclude 'frontend/src/utils/boqApi.js' \
+  --exclude 'frontend/src/views/workspaces/EstimationWorkspace.vue' \
   "$WORK/buildsuite/" "$ROOT/"
 
 echo "==> Applying IDEAIL product identity"
