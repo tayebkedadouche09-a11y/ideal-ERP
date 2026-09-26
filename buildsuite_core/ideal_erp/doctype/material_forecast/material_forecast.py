@@ -1,12 +1,15 @@
 import frappe
 from frappe.model.document import Document
-from frappe.utils import flt
+from frappe.utils import flt, nowdate
 
 from buildsuite_core.ideal_erp.integrated_flow import build_material_plan
 
 
 class MaterialForecast(Document):
     def validate(self):
+        self._recalculate_plan()
+
+    def _recalculate_plan(self):
         plan = build_material_plan(
             [
                 {
@@ -28,28 +31,70 @@ class MaterialForecast(Document):
             row.qty_to_order = calculated.qty_to_order
             row.estimated_value = calculated.estimated_value
 
-        self.total_forecast_qty_value = sum(
-            flt(row.estimated_value) for row in self.items
-        )
-        shortages = sum(1 for row in self.items if flt(row.qty_to_order) > 0)
-        if shortages == 0:
+        self.total_forecast_qty_value = sum(flt(row.estimated_value) for row in self.items)
+        shortages = [row for row in self.items if flt(row.qty_to_order) > 0]
+
+        if not shortages:
             self.status = "Fully Procured"
-        elif any(
-            flt(row.already_ordered_qty) > 0 or flt(row.qty_to_order) < flt(row.net_qty_required)
-            for row in self.items
-        ):
-            self.status = "Partially Procured"
+            self.procurement_status = "Fully Ordered"
+        elif self.material_request_ref and frappe.db.exists("Material Request", self.material_request_ref):
+            mr = frappe.get_cached_doc("Material Request", self.material_request_ref)
+            self.procurement_status = (
+                "Fully Ordered" if flt(mr.per_ordered) >= 100 else "Requested"
+            )
+            self.status = "Partially Procured" if any(
+                flt(row.already_ordered_qty) > 0 for row in self.items
+            ) else "Approved"
         else:
-            self.status = "Draft"
+            self.status = "Partially Procured" if any(
+                flt(row.already_ordered_qty) > 0 for row in self.items
+            ) else "Draft"
+            self.procurement_status = "Draft"
 
     def before_submit(self):
-        if any(
-            flt(row.boq_qty) < 0 or flt(row.waste_factor) < 0
-            for row in self.items
-        ):
+        self._recalculate_plan()
+        if any(flt(row.boq_qty) < 0 or flt(row.waste_factor) < 0 for row in self.items):
             frappe.throw("Material quantities and waste cannot be negative")
-        if self.status not in {"Fully Procured", "Partially Procured", "Draft"}:
-            self.status = "Draft"
+        if self.status not in {"Fully Procured", "Partially Procured"}:
+            self.status = "Approved"
+
+    def create_material_request(self):
+        if not self.project:
+            frappe.throw("Project is required before creating procurement.")
+        self._recalculate_plan()
+        rows = [
+            row for row in self.items
+            if flt(row.qty_to_order) > 0 and row.item_code
+        ]
+        if not rows:
+            frappe.throw("There is no material shortage to procure.")
+
+        if self.material_request_ref and frappe.db.exists("Material Request", self.material_request_ref):
+            return {"name": self.material_request_ref, "reused": True}
+
+        from buildsuite_core.api import procurement_docs
+
+        payload = [
+            {
+                "item_code": row.item_code,
+                "qty": flt(row.qty_to_order),
+                "uom": row.uom,
+                "rate": flt(row.estimated_rate),
+                "description": f"Project {self.project} — Material Forecast {self.name}",
+                "schedule_date": row.required_by_date or self.to_date or nowdate(),
+            }
+            for row in rows
+        ]
+        result = procurement_docs.save_material_request(
+            project=self.project,
+            schedule_date=self.to_date or nowdate(),
+            items=frappe.as_json(payload),
+        )
+        self.material_request_ref = result["name"]
+        self.procurement_status = "Request Draft"
+        self.db_set("material_request_ref", result["name"])
+        self.db_set("procurement_status", "Request Draft")
+        return {"name": result["name"], "reused": False}
 
     def _ordered(self, item_code):
         if not self.project or not frappe.get_meta("Purchase Order").has_field("project"):
@@ -98,12 +143,13 @@ class MaterialForecast(Document):
         try:
             q = frappe.db.sql(
                 """
-                SELECT COALESCE(SUM(mci.qty), 0) AS total
-                FROM `tabMaterial Consumption Item` mci
-                JOIN `tabMaterial Consumption Entry` mc ON mc.name = mci.parent
-                WHERE mci.item_code = %s
-                  AND mc.project = %s
-                  AND mc.docstatus = 1
+                SELECT COALESCE(SUM(sed.qty), 0) AS total
+                FROM `tabStock Entry Detail` sed
+                JOIN `tabStock Entry` se ON se.name = sed.parent
+                WHERE sed.item_code = %s
+                  AND se.project = %s
+                  AND se.purpose = 'Material Issue'
+                  AND se.docstatus = 1
                 """,
                 (item_code, self.project),
                 as_dict=True,
@@ -111,3 +157,4 @@ class MaterialForecast(Document):
         except Exception:
             return 0
         return flt((q[0] if q else {}).get("total"))
+
