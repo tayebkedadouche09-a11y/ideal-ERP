@@ -41,6 +41,9 @@ jobs:
               assert data.get("doctype") == "DocType", path
               assert data.get("name"), path
               assert isinstance(data.get("fields", []), list), path
+              fieldnames = {field.get("fieldname") for field in data.get("fields", [])}
+              if data.get("name") == "Material Forecast":
+                  assert {"material_request_ref", "procurement_status"} <= fieldnames
           print(f"Validated {len(files)} IDEAIL DocType JSON files")
           PY
 
@@ -58,4 +61,4 @@ jobs:
           PY
 
       - name: Run IDEAIL connected workflow tests
-        run: python -m pytest -q buildsuite_core/ideal_erp/tests/test_core.py
+        run: python -m pytest -q buildsuite_core/ideal_erp/tests
