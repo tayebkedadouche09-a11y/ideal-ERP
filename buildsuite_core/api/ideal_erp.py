@@ -1003,10 +1003,9 @@ def company_intelligence_live(limit: int = 100) -> dict:
     from buildsuite_core.api import boq_actuals
     from buildsuite_core.ideal_erp.intelligence.company_intelligence import ProjectSignal, analyze_projects
 
-    company = frappe.db.get_single_value("Global Defaults", "default_company")
-    if not company:
-        companies = frappe.get_all("Company", filters={"is_group": 0}, pluck="name", limit=1)
-        company = companies[0] if companies else None
+    from buildsuite_core.utils.project import default_company
+
+    company = default_company()
 
     projects = frappe.get_all(
         "Project",
