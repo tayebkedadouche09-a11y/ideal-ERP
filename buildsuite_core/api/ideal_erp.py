@@ -915,3 +915,82 @@ def approval_center(limit: int = 100) -> dict:
         "items": items[:max_rows],
         "supported": [doctype for doctype, _, _ in specs if frappe.db.exists("DocType", doctype)],
     }
+
+
+@frappe.whitelist(methods=["POST"])
+def voice_to_work(
+    project: str,
+    transcript: str,
+    language: str = "auto",
+    confirm: int = 0,
+    priority: str = "Medium",
+) -> dict:
+    """Turn a reviewed transcript into a real draft work item.
+
+    Speech recognition happens outside this endpoint; this function receives the
+    transcript and converts it into an explainable action. It never posts stock,
+    accounting or purchasing automatically.
+    """
+    from buildsuite_core.ideal_erp.field_and_digital import parse_voice_capture
+
+    if not project or not transcript:
+        frappe.throw("Project and transcript are required.")
+
+    action = parse_voice_capture(project, transcript, language)
+    proposal = {
+        "project": project,
+        "action_type": action.action_type,
+        "text": action.text,
+        "confidence": action.confidence,
+        "requires_confirmation": True,
+        "supported_actions": ["delay", "inspection", "note"],
+    }
+
+    if not int(confirm):
+        return {"proposal": proposal, "created": False}
+
+    if action.action_type in {"delay", "inspection", "note"}:
+        if not frappe.has_permission("ToDo", "create"):
+            frappe.throw("You are not allowed to create work items.", frappe.PermissionError)
+
+        subject = {
+            "delay": "Site delay: ",
+            "inspection": "Inspection required: ",
+            "note": "Site note: ",
+        }.get(action.action_type, "Site note: ")
+        todo = frappe.new_doc("ToDo")
+        todo.description = subject + action.text
+        todo.priority = priority if priority in {"Low", "Medium", "High"} else "Medium"
+        todo.reference_type = "Project"
+        todo.reference_name = project
+        todo.status = "Open"
+        todo.insert()
+        return {
+            "proposal": proposal,
+            "created": True,
+            "doctype": "ToDo",
+            "name": todo.name,
+            "route": f"/todo/{frappe.utils.quote(todo.name)}",
+        }
+
+    if action.action_type == "purchase":
+        return {
+            "proposal": {
+                **proposal,
+                "supported_actions": ["purchase"],
+                "next_step": "Provide the item and quantity, then create a Material Request draft.",
+            },
+            "created": False,
+        }
+
+    if action.action_type == "photo":
+        return {
+            "proposal": {
+                **proposal,
+                "supported_actions": ["photo"],
+                "next_step": "Attach a photo File to the Project or Task Progress Entry.",
+            },
+            "created": False,
+        }
+
+    return {"proposal": proposal, "created": False}
