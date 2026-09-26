@@ -26,8 +26,9 @@ lessons learned.
 
 Field evidence is another input channel on the same spine:
 
-mobile photo / site diary / voice capture -> draft evidence -> approval gate ->
-Project / Task / document evidence -> intelligence.
+browser voice transcript / mobile photo / site diary -> draft evidence -> human confirmation ->
+Project / Task / document evidence -> intelligence. Voice-to-Work can create a confirmed Project ToDo;
+purchasing and photo actions remain review-first.
 
 No step creates a second Project, BOQ, Stock Ledger or Accounting Ledger.
 
@@ -55,9 +56,9 @@ Implemented as connected capability contracts and deterministic adapters:
 - Site diary, photo evidence, approvals and site-inventory variance helpers
 - Forecasting, anomaly detection and lessons learned
 
-Actual external LLM, speech-to-text, CAD/BIM parser or embedding provider can be
-plugged in behind the same interfaces. Those providers are not allowed to become
-a second system of record.
+Actual external LLM, server-side speech-to-text, CAD/BIM parser or embedding provider can be
+plugged in behind the same interfaces. Browser speech recognition is supported for Voice-to-Work
+when the browser exposes it. Those providers are not allowed to become a second system of record.
 
 ## Industry layer
 
@@ -68,8 +69,8 @@ IDEAIL-native technical estimation supports:
 - Technical coatings
 - Waterproofing and decorative-concrete commercial calculations
 
-The estimator creates technical/cost drafts. Confirmation posts through the
-canonical project, BOQ and ERPNext commercial flow.
+The estimator creates technical/cost drafts. Confirmation posts through the canonical project, BOQ and ERPNext commercial flow.
+The current resin estimator can create a native ERPNext Quotation draft with server-authoritative margin calculation.
 
 ## Localization
 
