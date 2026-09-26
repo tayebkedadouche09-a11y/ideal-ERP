@@ -6,8 +6,9 @@
 // sidebar isn't a dead end. Workspaces with no backing screens omit `links` and show
 // just the "Coming next" panel.
 
-import { RouterLink, useRoute } from "vue-router";
+import { RouterLink } from "vue-router";
 import WorkspaceShortcut from "@/components/WorkspaceShortcut.vue";
+import { computed } from "vue";
 import { getWorkspaceIconPath, resolveWorkspaceIconSlug } from "@/utils/workspaceIcons";
 
 const props = defineProps({
@@ -18,8 +19,6 @@ const props = defineProps({
 	// derives shortcuts from the real routes already available in this app.
 	links: { type: Array, default: () => [] },
 });
-
-const route = useRoute();
 
 const REAL_MODULE_LINKS = {
 	Buying: [
