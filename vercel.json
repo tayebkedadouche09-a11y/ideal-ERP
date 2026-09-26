@@ -53,10 +53,5 @@
       "source": "/core/:path*",
       "destination": "/index.html"
     }
-  ],
-  "functions": {
-    "api/[...path].js": {
-      "runtime": "nodejs20.x"
-    }
-  }
+  ]
 }
