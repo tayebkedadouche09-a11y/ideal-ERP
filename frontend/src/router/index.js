@@ -356,6 +356,11 @@ const routes = [
 				component: () => import("@/views/workspaces/ProjectDashboardView.vue"),
 			},
 			{
+				path: "approval-center",
+				name: "approval-center",
+				component: () => import("@/views/ApprovalCenterView.vue"),
+			},
+			{
 				// Insights — ask-a-question reporting. Leadership-gated in the view.
 				path: "insights",
 				name: "insights",
