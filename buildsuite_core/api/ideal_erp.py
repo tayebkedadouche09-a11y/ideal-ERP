@@ -507,7 +507,15 @@ def project_360(project: str) -> dict:
     if not project:
         frappe.throw("Project is required.")
 
-    from buildsuite_core.api import boq_actuals, cost_report, project_dashboard
+    from frappe.utils import date_diff, flt, getdate, nowdate
+    from buildsuite_core.api import boq_actuals, cost_report, project_dashboard, schedule
+    from buildsuite_core.ideal_erp.integrated_flow import (
+        MaterialPlanLine,
+        analyze_change_orders,
+        analyze_schedule,
+        assess_project_risk,
+        calculate_evm,
+    )
     from buildsuite_core.ideal_erp.intelligence.company_intelligence import (
         ProjectSignal,
         analyze_project,
@@ -534,6 +542,51 @@ def project_360(project: str) -> dict:
     )
     forecast = forecast_rows[0] if forecast_rows else None
 
+    forecast_items = []
+    material_lines = []
+    shortage_value = 0.0
+    if forecast:
+        forecast_items = frappe.get_all(
+            "Material Forecast Item",
+            filters={"parent": forecast.name, "parenttype": "Material Forecast"},
+            fields=[
+                "item_code",
+                "boq_qty",
+                "waste_factor",
+                "net_qty_required",
+                "already_ordered_qty",
+                "qty_to_order",
+                "estimated_rate",
+                "required_by_date",
+            ],
+            order_by="idx asc",
+        )
+        for row in forecast_items:
+            qty_to_order = flt(row.qty_to_order)
+            ordered = flt(row.already_ordered_qty)
+            required = flt(row.net_qty_required) or flt(row.boq_qty)
+            rate = flt(row.estimated_rate)
+            shortage_value += qty_to_order * rate
+            status = "covered"
+            if qty_to_order > 0:
+                status = "partial_shortage" if ordered > 0 else "shortage"
+            material_lines.append(
+                MaterialPlanLine(
+                    item_code=row.item_code,
+                    planned_qty=flt(row.boq_qty),
+                    waste_pct=flt(row.waste_factor),
+                    required_qty=required,
+                    consumed_qty=0.0,
+                    available_qty=max(0.0, required - ordered - qty_to_order),
+                    ordered_qty=ordered,
+                    qty_to_order=qty_to_order,
+                    estimated_rate=rate,
+                    estimated_value=qty_to_order * rate,
+                    status=status,
+                    required_by=row.required_by_date,
+                )
+            )
+
     project_row = frappe.db.get_value(
         "Project",
         project,
@@ -541,23 +594,106 @@ def project_360(project: str) -> dict:
         as_dict=True,
     )
     health = (dashboard.get("health") or [{}])[0]
+
+    schedule_data = schedule.get_project_schedule(project)
+    schedule_tasks = []
+    today = getdate(nowdate())
+    for task_row in schedule_data.get("tasks", []):
+        duration = 0.0
+        if task_row.get("exp_start_date") and task_row.get("exp_end_date"):
+            duration = max(
+                0,
+                date_diff(task_row.exp_end_date, task_row.exp_start_date) + 1,
+            )
+        delay_days = 0.0
+        if (
+            task_row.get("exp_end_date")
+            and task_row.get("task_status") != "Completed"
+            and getdate(task_row.exp_end_date) < today
+        ):
+            delay_days = max(0, date_diff(today, task_row.exp_end_date))
+        schedule_tasks.append(
+            {
+                "id": task_row.name,
+                "duration_days": duration,
+                "delay_days": delay_days,
+                "predecessors": [item["task"] for item in (task_row.get("predecessors") or [])],
+            }
+        )
+
+    try:
+        schedule_snapshot = analyze_schedule(schedule_tasks)
+    except ValueError as exc:
+        schedule_snapshot = {
+            "planned_duration_days": 0.0,
+            "forecast_duration_days": 0.0,
+            "critical_tasks": [],
+            "task_offsets": {},
+            "cycle_detected": True,
+            "error": str(exc),
+        }
+
+    contract_value = flt(finance["contract_value"])
+    planned_progress = flt(health.get("expected"))
+    actual_progress = flt(health.get("progress"))
+    evm = calculate_evm(
+        [
+            {
+                "budget": contract_value,
+                "planned_pct": planned_progress,
+                "actual_pct": actual_progress,
+                "actual_cost": flt(finance["actual_cost"]),
+            }
+        ]
+    )
+
+    change_rows = frappe.get_all(
+        "Scope Change Order",
+        filters={"project": project},
+        fields=["status", "impact", "recoverable"],
+        order_by="raised_date desc, modified desc",
+        limit_page_length=500,
+    )
+    changes = analyze_change_orders(
+        [
+            {
+                "status": row.status,
+                "cost_impact": flt(row.impact),
+                "days_impact": 0,
+                "evidence_complete": bool(row.recoverable or row.status == "Approved"),
+            }
+            for row in change_rows
+        ]
+    )
+    risk = assess_project_risk(
+        evm=evm,
+        schedule=schedule_snapshot,
+        material=material_lines,
+        change_orders=changes,
+    )
+
     baseline_days = 0.0
     if project_row and project_row.expected_start_date and project_row.expected_end_date:
         baseline_days = max(
             0.0,
-            (project_row.expected_end_date - project_row.expected_start_date).days,
+            date_diff(project_row.expected_end_date, project_row.expected_start_date),
         )
     delayed_days = float(health.get("delayed") or 0)
+    material_variance_pct = (
+        shortage_value / flt(forecast.total_forecast_qty_value) * 100.0
+        if forecast and flt(forecast.total_forecast_qty_value)
+        else 0.0
+    )
     insights = analyze_project(
         ProjectSignal(
             project=project,
-            baseline_cost=float(finance["contract_value"] or 0),
-            actual_cost=float(finance["actual_cost"] or 0),
-            planned_progress_pct=float(health.get("expected") or 0),
-            actual_progress_pct=float(health.get("progress") or 0),
+            baseline_cost=contract_value,
+            actual_cost=flt(finance["actual_cost"]),
+            planned_progress_pct=planned_progress,
+            actual_progress_pct=actual_progress,
             baseline_end_days=baseline_days,
             forecast_end_days=baseline_days + delayed_days,
-            material_variance_pct=0.0,
+            material_variance_pct=material_variance_pct,
         )
     )
 
@@ -568,6 +704,10 @@ def project_360(project: str) -> dict:
         "cost_control": cost,
         "actuals": actuals,
         "material_forecast": forecast,
+        "evm": evm,
+        "schedule": schedule_snapshot,
+        "changes": changes,
+        "risk": risk,
         "intelligence": [
             {
                 "kind": item.kind,
