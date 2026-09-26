@@ -20,6 +20,7 @@ rsync -a --delete \
   --exclude 'scripts/' \
   --exclude 'buildsuite_core/ideal_erp/' \
   --exclude 'buildsuite_core/api/ideal_erp.py' \
+  --exclude 'buildsuite_core/api/project_finance_snapshot.py' \
   "$WORK/buildsuite/" "$ROOT/"
 
 echo "==> Applying IDEAIL product identity"
