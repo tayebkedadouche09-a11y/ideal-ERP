@@ -20,7 +20,6 @@ rsync -a --delete \
   --exclude 'scripts/' \
   --exclude 'buildsuite_core/ideal_erp/' \
   --exclude 'buildsuite_core/api/ideal_erp.py' \
-  --exclude 'buildsuite_core/api/project_finance_snapshot.py' \
   --exclude 'frontend/src/data/project360Api.js' \
   --exclude 'frontend/src/views/project-detail/tabs/OverviewTab.vue' \
   --exclude 'frontend/src/views/PlaceholderView.vue' \
