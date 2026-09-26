@@ -507,11 +507,58 @@ def project_360(project: str) -> dict:
         frappe.throw("Project is required.")
 
     from buildsuite_core.api import boq_actuals, cost_report, project_dashboard
+    from buildsuite_core.ideal_erp.intelligence.company_intelligence import (
+        ProjectSignal,
+        analyze_project,
+    )
 
     dashboard = project_dashboard.get_project_dashboard(project)
     cost = cost_report.cost_vs_budget_by_cost_code(project)
     actuals = boq_actuals.get_actuals_summary(project)
     finance = project_financial_snapshot(project)
+
+    forecast_rows = frappe.get_all(
+        "Material Forecast",
+        filters={"project": project},
+        fields=[
+            "name",
+            "status",
+            "procurement_status",
+            "material_request_ref",
+            "total_forecast_qty_value",
+            "modified",
+        ],
+        order_by="modified desc",
+        limit=1,
+    )
+    forecast = forecast_rows[0] if forecast_rows else None
+
+    project_row = frappe.db.get_value(
+        "Project",
+        project,
+        ["expected_start_date", "expected_end_date"],
+        as_dict=True,
+    )
+    health = (dashboard.get("health") or [{}])[0]
+    baseline_days = 0.0
+    if project_row and project_row.expected_start_date and project_row.expected_end_date:
+        baseline_days = max(
+            0.0,
+            (project_row.expected_end_date - project_row.expected_start_date).days,
+        )
+    delayed_days = float(health.get("delayed") or 0)
+    insights = analyze_project(
+        ProjectSignal(
+            project=project,
+            baseline_cost=float(finance["contract_value"] or 0),
+            actual_cost=float(finance["actual_cost"] or 0),
+            planned_progress_pct=float(health.get("expected") or 0),
+            actual_progress_pct=float(health.get("progress") or 0),
+            baseline_end_days=baseline_days,
+            forecast_end_days=baseline_days + delayed_days,
+            material_variance_pct=0.0,
+        )
+    )
 
     return {
         "project": project,
@@ -519,6 +566,16 @@ def project_360(project: str) -> dict:
         "finance": finance,
         "cost_control": cost,
         "actuals": actuals,
+        "material_forecast": forecast,
+        "intelligence": [
+            {
+                "kind": item.kind,
+                "severity": item.severity,
+                "message": item.message,
+                "evidence": list(item.evidence),
+            }
+            for item in insights
+        ],
         "connected_sources": [
             "Project",
             "BOQ",
