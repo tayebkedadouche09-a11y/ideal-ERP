@@ -29,6 +29,7 @@ rsync -a --delete \
   --exclude 'frontend/src/views/workspaces/ReportStubView.vue' \
   --exclude 'frontend/src/views/ApprovalCenterView.vue' \
   --exclude 'frontend/src/data/approvalCenterApi.js' \
+  --exclude 'frontend/src/views/VoiceToWorkView.vue' \
   --exclude 'frontend/src/views/AppHomeView.vue' \
   --exclude 'buildsuite_core/api/home.py' \
   "$WORK/buildsuite/" "$ROOT/"
