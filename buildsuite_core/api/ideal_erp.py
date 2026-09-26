@@ -45,6 +45,7 @@ from buildsuite_core.ideal_erp.localization import (
     resolve_localization,
 )
 from buildsuite_core.ideal_erp.registry import get_registry, validate_dependency_graph
+from buildsuite_core.ideal_erp.project_finance import calculate_project_finance
 
 
 def _plain(value):
@@ -345,12 +346,150 @@ def commercial_calculation(
     )
 
 
+def _live_approved_contract_value(project: str) -> float:
+    rows = frappe.get_all(
+        "BOQ",
+        filters={"project": project, "status": "Approved"},
+        fields=["planned_amount"],
+        order_by="creation desc",
+        limit=1,
+    )
+    if rows:
+        return float(rows[0].planned_amount or 0)
+    return float(frappe.db.get_value("Project", project, "estimated_costing") or 0)
+
+
+def _live_invoice_totals(project: str) -> dict:
+    rows = frappe.get_all(
+        "Sales Invoice",
+        filters={"project": project, "docstatus": 1},
+        fields=["name", "net_total", "grand_total", "outstanding_amount"],
+    )
+    return {
+        "count": len(rows),
+        "net_invoiced": sum(float(r.net_total or 0) for r in rows),
+        "gross_invoiced": sum(float(r.grand_total or 0) for r in rows),
+        "outstanding": sum(float(r.outstanding_amount or 0) for r in rows),
+        "names": [r.name for r in rows],
+    }
+
+
+def _live_payment_totals(invoice_names: list[str]) -> dict:
+    if not invoice_names:
+        return {"count": 0, "allocated": 0.0}
+    refs = frappe.get_all(
+        "Payment Entry Reference",
+        filters={
+            "reference_doctype": "Sales Invoice",
+            "reference_name": ["in", invoice_names],
+            "docstatus": 1,
+        },
+        fields=["parent", "allocated_amount"],
+    )
+    payment_names = list({r.parent for r in refs})
+    if not payment_names:
+        return {"count": 0, "allocated": 0.0}
+    valid = set(
+        frappe.get_all(
+            "Payment Entry",
+            filters={
+                "name": ["in", payment_names],
+                "docstatus": 1,
+                "payment_type": "Receive",
+            },
+            pluck="name",
+        )
+    )
+    return {
+        "count": len(valid),
+        "allocated": sum(
+            float(r.allocated_amount or 0) for r in refs if r.parent in valid
+        ),
+    }
+
+
+def _live_open_commitments(project: str) -> dict:
+    po_rows = frappe.get_all(
+        "Purchase Order",
+        filters={
+            "project": project,
+            "docstatus": 1,
+            "status": ["not in", ["Completed", "Closed", "Cancelled"]],
+        },
+        fields=["grand_total"],
+    )
+    subcontract_rows = (
+        frappe.get_all(
+            "Subcontractor Work Order",
+            filters={"project": project, "docstatus": 1},
+            fields=["total_value"],
+        )
+        if frappe.db.exists("DocType", "Subcontractor Work Order")
+        else []
+    )
+    po_value = sum(float(r.grand_total or 0) for r in po_rows)
+    subcontract_value = sum(float(r.total_value or 0) for r in subcontract_rows)
+    return {
+        "purchase_orders": len(po_rows),
+        "purchase_order_value": po_value,
+        "subcontract_work_orders": len(subcontract_rows),
+        "subcontract_committed_value": subcontract_value,
+        "total_open_commitment": po_value + subcontract_value,
+    }
+
+
 @frappe.whitelist()
 def project_financial_snapshot(project: str) -> dict:
-    """Read the live ERPNext/BuildSuite project finance reconciliation."""
-    from buildsuite_core.api.project_finance_snapshot import get_project_financial_snapshot
+    """Reconcile a project's commercial value, cash, actual cost and commitments."""
+    if not project:
+        frappe.throw("Project is required.")
+    project_row = frappe.db.get_value(
+        "Project",
+        project,
+        ["project_name", "company", "customer", "estimated_costing"],
+        as_dict=True,
+    )
+    if not project_row:
+        frappe.throw(f"Project {project} does not exist.")
 
-    return get_project_financial_snapshot(project)
+    from buildsuite_core.api import boq_actuals
+
+    contract_value = _live_approved_contract_value(project)
+    invoices = _live_invoice_totals(project)
+    payments = _live_payment_totals(invoices["names"])
+    actuals = boq_actuals.get_actuals_summary(project)
+    commitments = _live_open_commitments(project)
+    finance = calculate_project_finance(
+        contract_value=contract_value,
+        invoiced_net=invoices["net_invoiced"],
+        outstanding_gross=invoices["outstanding"],
+        actual_cost=float(actuals["total"]),
+        open_commitment=commitments["total_open_commitment"],
+    )
+    invoices.pop("names", None)
+
+    return {
+        "project": project,
+        "project_name": project_row.project_name or project,
+        "company": project_row.company,
+        "customer": project_row.customer,
+        "contract_value": contract_value,
+        "invoices": invoices,
+        "payments": payments,
+        "actual_cost": actuals["total"],
+        "actual_cost_by_type": {
+            code: row.get("by_cost_type", {})
+            for code, row in actuals.get("by_group", {}).items()
+        },
+        "commitments": commitments,
+        "finance": finance,
+        "source_of_truth": {
+            "commercial": "ERPNext Sales Invoice",
+            "cash": "ERPNext Payment Entry + Payment Entry Reference",
+            "actual_cost": "BuildSuite BOQ Actuals",
+            "commitments": "ERPNext Purchase Order + Subcontractor Work Order",
+        },
+    }
 
 
 @frappe.whitelist(methods=["POST"])
