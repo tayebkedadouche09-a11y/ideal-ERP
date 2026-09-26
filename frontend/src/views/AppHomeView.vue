@@ -34,6 +34,7 @@ const snapshot = computed(() => dash.value?.snapshot || []);
 const alerts = computed(() => dash.value?.alerts || []);
 const cta = computed(() => dash.value?.cta || null);
 const briefing = computed(() => dash.value?.briefing || null);
+const briefingItems = computed(() => (briefing.value?.priority || []).filter((item) => item.tone !== "muted"));
 
 const now = new Date();
 const greeting = computed(() => {
@@ -303,12 +304,12 @@ const quickActions = computed(() => {
 \t\t\t\t\t<div v-for="line in briefing.summary" :key="line" class="text-sm text-ink-700 mb-2 last:mb-0">{{ line }}</div>
 \t\t\t\t</div>
 \t\t\t\t<div class="lg:col-span-2 space-y-2">
-\t\t\t\t\t<RouterLink v-for="item in briefing.priority.filter((x) => x.tone !== 'muted')" :key="item.key" :to="item.to" class="flex items-center gap-3 px-3 py-2.5 border border-ink-100 rounded-lg hover:bg-ink-50">
+\t\t\t\t\t<RouterLink v-for="item in briefingItems" :key="item.key" :to="item.to" class="flex items-center gap-3 px-3 py-2.5 border border-ink-100 rounded-lg hover:bg-ink-50">
 \t\t\t\t\t\t<span class="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold bg-ink-50 text-ink-700">{{ item.priority_rank }}</span>
 \t\t\t\t\t\t<span class="flex-1 min-w-0"><span class="block text-sm font-medium text-ink-900">{{ item.title }}</span><span class="block text-[11px] text-ink-500 mt-0.5 truncate">{{ item.sub }}</span></span>
 \t\t\t\t\t\t<span class="text-xs text-brand-700">Open →</span>
 \t\t\t\t\t</RouterLink>
-\t\t\t\t\t<div v-if="!briefing.priority.some((x) => x.tone !== 'muted')" class="text-sm text-success-700">Nothing is currently prioritized.</div>
+\t\t\t\t\t<div v-if="!briefingItems.length" class="text-sm text-success-700">Nothing is currently prioritized.</div>
 \t\t\t\t</div>
 \t\t\t</div>
 \t\t</section>
