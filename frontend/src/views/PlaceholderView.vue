@@ -60,6 +60,8 @@ const REAL_MODULE_LINKS = {
 		{ label: "Project Finance", to: "/project-finance", icon: "wallet", desc: "Invoices, payments, supplier bills and project financials." },
 		{ label: "Finance Reports", to: "/project-finance/report/cash-flow", icon: "chart", desc: "Finance reporting over ERPNext accounting data." },
 		{ label: "Cost vs Budget", to: "/reports/cost-vs-budget", icon: "chart", desc: "Planned, committed and actual project cost by code." },
+		{ label: "Interim Payment Certificates", to: "/records/Interim%20Payment%20Certificate", icon: "receipt", desc: "Certify progress billing and generate ERPNext customer invoices." },
+		{ label: "Retention Releases", to: "/records/Retention%20Release", icon: "lock-open", desc: "Approve and invoice contractual retention release." },
 		{ label: "Accounting", to: "/accounting", icon: "calculator", desc: "ERPNext accounting workspace and ledgers." },
 	],
 	Reports: [
