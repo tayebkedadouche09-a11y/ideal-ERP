@@ -113,6 +113,7 @@ class InterimPaymentCertificate(Document):
         if not self.sales_invoice_ref or not frappe.db.exists("Sales Invoice", self.sales_invoice_ref):
             return
         invoice = frappe.get_doc("Sales Invoice", self.sales_invoice_ref)
+        invoice.flags.ignore_permissions = True
         if invoice.docstatus == 1:
             invoice.cancel()
         elif invoice.docstatus == 0:
