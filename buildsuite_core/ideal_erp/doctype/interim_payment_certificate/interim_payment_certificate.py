@@ -68,7 +68,7 @@ class InterimPaymentCertificate(Document):
 
     def on_cancel(self):
         self._cancel_sales_invoice()
-        self.db_set("status", "Draft")
+        self.db_set("status", "Cancelled")
 
     def _create_sales_invoice(self):
         if self.sales_invoice_ref and frappe.db.exists("Sales Invoice", self.sales_invoice_ref):
