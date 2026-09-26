@@ -4,46 +4,10 @@
   "installCommand": "npm ci --prefix frontend",
   "buildCommand": "npm run build --prefix frontend",
   "outputDirectory": "frontend/dist",
-  "cleanUrls": true,
-  "redirects": [
-    {
-      "source": "/",
-      "destination": "/core/home",
-      "permanent": false
-    }
-  ],
   "rewrites": [
     {
-      "source": "/login",
-      "destination": "/api/login"
-    },
-    {
-      "source": "/login/:path*",
-      "destination": "/api/login/:path*"
-    },
-    {
-      "source": "/app",
-      "destination": "/api/app"
-    },
-    {
-      "source": "/app/:path*",
-      "destination": "/api/app/:path*"
-    },
-    {
-      "source": "/assets/frappe/:path*",
-      "destination": "/api/assets/frappe/:path*"
-    },
-    {
-      "source": "/assets/erpnext/:path*",
-      "destination": "/api/assets/erpnext/:path*"
-    },
-    {
-      "source": "/files/:path*",
-      "destination": "/api/files/:path*"
-    },
-    {
-      "source": "/private/files/:path*",
-      "destination": "/api/private/files/:path*"
+      "source": "/",
+      "destination": "/index.html"
     },
     {
       "source": "/core",
