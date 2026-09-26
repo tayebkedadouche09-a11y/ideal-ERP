@@ -465,6 +465,7 @@ def project_financial_snapshot(project: str) -> dict:
         outstanding_gross=invoices["outstanding"],
         actual_cost=float(actuals["total"]),
         open_commitment=commitments["total_open_commitment"],
+        invoiced_gross=float(invoices["gross_invoiced"]),
     )
     invoices.pop("names", None)
 
