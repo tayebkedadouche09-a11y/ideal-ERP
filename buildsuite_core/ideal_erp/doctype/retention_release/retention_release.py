@@ -3,6 +3,8 @@ from frappe.model.document import Document
 from frappe.utils import flt, nowdate
 
 from buildsuite_core.ideal_erp.integrated_flow import calculate_retention_release
+from buildsuite_core.api import invoice as invoice_api
+from buildsuite_core.api.workflow import workflow_active
 
 
 class RetentionRelease(Document):
@@ -46,31 +48,53 @@ class RetentionRelease(Document):
         self.approval_date = nowdate()
 
     def on_submit(self):
-        if self.sales_invoice_ref:
-            return
-        invoice = frappe.new_doc("Sales Invoice")
-        invoice.customer = self.client
-        invoice.company = self.company
-        invoice.currency = self.currency
-        if hasattr(invoice, "project"):
-            invoice.project = self.project
-        invoice.append(
-            "items",
-            {
-                "item_name": f"Retention Release — {self.project}",
-                "description": f"Retention release ({self.release_type}) for project {self.project}",
-                "qty": 1,
-                "rate": flt(self.release_amount),
-                "uom": "Nos",
-            },
+        self._create_sales_invoice()
+
+    def _create_sales_invoice(self):
+        if self.sales_invoice_ref and frappe.db.exists("Sales Invoice", self.sales_invoice_ref):
+            return self.sales_invoice_ref
+
+        result = invoice_api.save_invoice(
+            frappe.as_json(
+                {
+                    "customer": self.client,
+                    "project": self.project,
+                    "date": self.release_date or nowdate(),
+                    "due_date": self.release_date or nowdate(),
+                    "items": [
+                        {
+                            "description": f"Retention release ({self.release_type}) for project {self.project}",
+                            "qty": 1,
+                            "rate": flt(self.release_amount),
+                        }
+                    ],
+                }
+            )
         )
-        invoice.insert(ignore_permissions=True)
-        self.db_set("sales_invoice_ref", invoice.name)
+        invoice_name = result["name"]
+        self.db_set("sales_invoice_ref", invoice_name)
+
+        if workflow_active("Sales Invoice"):
+            self.db_set("status", "Invoice Pending")
+            return invoice_name
+
+        invoice = frappe.get_doc("Sales Invoice", invoice_name)
+        try:
+            invoice.check_permission("submit")
+        except frappe.PermissionError:
+            self.db_set("status", "Invoice Pending")
+            return invoice_name
+
+        invoice.submit()
         self.db_set("status", "Invoiced")
+        return invoice_name
 
     def on_cancel(self):
-        if self.sales_invoice_ref:
+        if self.sales_invoice_ref and frappe.db.exists("Sales Invoice", self.sales_invoice_ref):
             invoice = frappe.get_doc("Sales Invoice", self.sales_invoice_ref)
             if invoice.docstatus == 1:
                 invoice.cancel()
+            elif invoice.docstatus == 0:
+                frappe.delete_doc("Sales Invoice", invoice.name, ignore_permissions=True)
+        self.db_set("sales_invoice_ref", None)
         self.db_set("status", "Cancelled")
