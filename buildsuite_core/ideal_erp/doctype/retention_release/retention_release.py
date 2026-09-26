@@ -92,6 +92,7 @@ class RetentionRelease(Document):
     def on_cancel(self):
         if self.sales_invoice_ref and frappe.db.exists("Sales Invoice", self.sales_invoice_ref):
             invoice = frappe.get_doc("Sales Invoice", self.sales_invoice_ref)
+            invoice.flags.ignore_permissions = True
             if invoice.docstatus == 1:
                 invoice.cancel()
             elif invoice.docstatus == 0:
