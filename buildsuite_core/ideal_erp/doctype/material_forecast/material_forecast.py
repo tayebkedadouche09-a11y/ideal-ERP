@@ -27,12 +27,29 @@ class MaterialForecast(Document):
             row.already_ordered_qty = calculated.ordered_qty
             row.qty_to_order = calculated.qty_to_order
             row.estimated_value = calculated.estimated_value
-        self.total_forecast_qty_value = sum(flt(row.estimated_value) for row in self.items)
+
+        self.total_forecast_qty_value = sum(
+            flt(row.estimated_value) for row in self.items
+        )
+        shortages = sum(1 for row in self.items if flt(row.qty_to_order) > 0)
+        if shortages == 0:
+            self.status = "Fully Procured"
+        elif any(
+            flt(row.already_ordered_qty) > 0 or flt(row.qty_to_order) < flt(row.net_qty_required)
+            for row in self.items
+        ):
+            self.status = "Partially Procured"
+        else:
+            self.status = "Draft"
 
     def before_submit(self):
-        if any(flt(row.boq_qty) < 0 or flt(row.waste_factor) < 0 for row in self.items):
+        if any(
+            flt(row.boq_qty) < 0 or flt(row.waste_factor) < 0
+            for row in self.items
+        ):
             frappe.throw("Material quantities and waste cannot be negative")
-        self.status = "Approved"
+        if self.status not in {"Fully Procured", "Partially Procured", "Draft"}:
+            self.status = "Draft"
 
     def _ordered(self, item_code):
         if not self.project or not frappe.get_meta("Purchase Order").has_field("project"):
