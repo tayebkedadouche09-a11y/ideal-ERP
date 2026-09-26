@@ -28,8 +28,21 @@ The selected foundation is the BuildSuite Core architecture on ERPNext v16 becau
 
 ## Current status
 
-- Repository initialized as the single consolidation target.
-- Unification matrix and architecture decisions committed.
-- Next implementation work is staged as additive modules over the canonical construction core; duplicated source systems are not retained as parallel runtimes.
+The unified product spine is implemented as additive functionality over the canonical Frappe/ERPNext runtime.
+
+Implemented connected flows include:
+
+- Project 360: project, BOQ, finance, procurement, stock, EVM, schedule, changes, risk and Company Intelligence.
+- BOQ → Material Forecast → Material Request → Purchase Order / receipt / consumption.
+- IPC → retention calculation → ERPNext Sales Invoice → payment/receivable tracking.
+- Retention Release → ERPNext Sales Invoice with native cancellation sync.
+- Resin / epoxy technical estimate → margin → native ERPNext Quotation draft.
+- Daily Briefing + Smart Priority over live project/approval/supply signals.
+- Approval Center over native Frappe workflows and document states.
+- Voice-to-Work: browser transcript → explainable proposal → confirmed project ToDo, with purchasing/photo actions kept as review steps.
+- Legacy report routes dispatch to live in-app reports instead of rendering fabricated sample data.
+- FR / AR / EN, RTL and DZD-ready commercial formatting remain part of the unified layer.
+
+The remaining production gate is live Bench/Frappe/ERPNext runtime validation: migrate, permissions, workflows, submit/cancel behavior, GL/stock posting, and end-to-end document transactions on a real site. No second ERP, ledger, stock engine or project master is introduced.
 
 See [docs/UNIFICATION_MATRIX.md](docs/UNIFICATION_MATRIX.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
