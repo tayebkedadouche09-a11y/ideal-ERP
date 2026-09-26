@@ -3,6 +3,23 @@
 // Error(<server message>) so callers can surface the reason.
 
 const BASE = "/api/method/buildsuite_core.api.boq.";
+const IDEAIL_BASE = "/api/method/buildsuite_core.api.ideal_erp.";
+
+async function requestFromIdealErp(method, body) {
+	const res = await fetch(IDEAIL_BASE + method, {
+		method: "POST",
+		credentials: "include",
+		headers: {
+			Accept: "application/json",
+			"Content-Type": "application/json",
+			"X-Frappe-CSRF-Token": window.csrf_token || "",
+		},
+		body: JSON.stringify(body || {}),
+	});
+	const payload = await res.json().catch(() => ({}));
+	if (!res.ok) throw new Error(serverMessage(payload, res.status));
+	return payload.message;
+}
 
 function serverMessage(payload, status) {
 	try {
@@ -70,3 +87,6 @@ export const createRevision = (boq, sourceSco = null, title = null) =>
 export const cloneBoq = (payload) => request("clone_boq", payload);
 export const importTemplate = (boq, estimateTemplate) =>
 	request("import_template", { boq, estimate_template: estimateTemplate });
+
+export const createMaterialForecastFromBoq = (boq, wastePct = 5) =>
+	requestFromIdealErp("create_material_forecast_from_boq", { boq, waste_pct: wastePct });
