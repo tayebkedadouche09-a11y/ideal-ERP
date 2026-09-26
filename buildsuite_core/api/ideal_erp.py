@@ -650,7 +650,7 @@ def project_360(project: str) -> dict:
     change_rows = frappe.get_all(
         "Scope Change Order",
         filters={"project": project},
-        fields=["status", "impact", "recoverable"],
+        fields=["status", "impact", "recoverable", "reason"],
         order_by="raised_date desc, modified desc",
         limit_page_length=500,
     )
@@ -660,7 +660,7 @@ def project_360(project: str) -> dict:
                 "status": row.status,
                 "cost_impact": flt(row.impact),
                 "days_impact": 0,
-                "evidence_complete": bool(row.recoverable or row.status == "Approved"),
+                "evidence_complete": bool(row.reason) or row.status == "Approved",
             }
             for row in change_rows
         ]
