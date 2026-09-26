@@ -518,6 +518,34 @@ function baseAmount(code) {
 }
 
 // === Workflow / advanced actions (boqApi) ===
+
+async function generateMaterialForecast() {
+	if (boq.value?.status !== "Approved") {
+		showToast("Approve the BOQ before generating a material forecast.", "error");
+		return;
+	}
+	const ok = await confirmDialog({
+		title: "Generate Material Forecast",
+		message: "Create a draft forecast from the approved BOQ material lines? Item matching will be reviewed before procurement.",
+		confirmLabel: "Generate draft",
+	});
+	if (!ok) return;
+	try {
+		const result = await boqApi.createMaterialForecastFromBoq(boq.value.id, 5);
+		if (result?.requires_human_confirmation) {
+			showToast("Forecast created with some unmatched material lines — review before procurement.", "warning");
+		} else {
+			showToast("Material forecast draft created.");
+		}
+		if (result?.name) router.push({
+			name: "record-edit",
+			params: { doctype: "Material Forecast", name: result.name },
+		});
+	} catch (err) {
+		showToast(parseFrappeError(err).summary ?? "Failed to generate material forecast", "error");
+	}
+}
+
 async function recalculate() {
 	try {
 		await boqApi.recalculateActuals(boq.value.id);
@@ -1160,6 +1188,15 @@ const breadcrumbs = computed(() => {
 							@click="recalculate"
 						>
 							↻ Recalc actuals
+						</button>
+						<button
+							v-if="boq.status === 'Approved' && canCreate('boq')"
+							type="button"
+							class="text-xs px-2 py-1 border border-brand-200 bg-brand-50 hover:bg-brand-100 text-brand-700"
+							style="border-radius: 2px"
+							@click="generateMaterialForecast"
+						>
+							Material Forecast…
 						</button>
 
 						<button
