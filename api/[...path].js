@@ -86,7 +86,11 @@ export default async function handler(req, res) {
     res.setHeader(key, value);
   }
 
-  const setCookies = upstream.headers.getSetCookie?.() || [];
+  const setCookies = (upstream.headers.getSetCookie?.() || []).map((cookie) =>
+    cookie
+      .replace(/;\\s*Domain=[^;]*/gi, "")
+      .replace(/;\\s*SameSite=None/gi, "; SameSite=Lax")
+  );
   if (setCookies.length) res.setHeader("set-cookie", setCookies);
 
   res.status(upstream.status).send(Buffer.from(await upstream.arrayBuffer()));
