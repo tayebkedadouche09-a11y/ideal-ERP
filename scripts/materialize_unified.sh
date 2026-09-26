@@ -33,6 +33,9 @@ rsync -a --delete \
   --exclude 'frontend/src/views/VoiceToWorkView.vue' \
   --exclude 'frontend/src/views/AppHomeView.vue' \
   --exclude 'buildsuite_core/api/home.py' \
+  --exclude 'vercel.json' \
+  --exclude 'api/' \
+  --exclude 'frontend/vite.config.js' \
   "$WORK/buildsuite/" "$ROOT/"
 
 echo "==> Applying IDEAIL product identity"
