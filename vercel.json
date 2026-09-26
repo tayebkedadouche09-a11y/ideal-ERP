@@ -6,8 +6,36 @@
   "outputDirectory": "frontend/dist",
   "rewrites": [
     {
-      "source": "/",
-      "destination": "/index.html"
+      "source": "/login",
+      "destination": "/api/login"
+    },
+    {
+      "source": "/login/:path*",
+      "destination": "/api/login/:path*"
+    },
+    {
+      "source": "/app",
+      "destination": "/api/app"
+    },
+    {
+      "source": "/app/:path*",
+      "destination": "/api/app/:path*"
+    },
+    {
+      "source": "/assets/frappe/:path*",
+      "destination": "/api/assets/frappe/:path*"
+    },
+    {
+      "source": "/assets/erpnext/:path*",
+      "destination": "/api/assets/erpnext/:path*"
+    },
+    {
+      "source": "/files/:path*",
+      "destination": "/api/files/:path*"
+    },
+    {
+      "source": "/private/files/:path*",
+      "destination": "/api/private/files/:path*"
     },
     {
       "source": "/core",
@@ -17,5 +45,13 @@
       "source": "/core/:path*",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/core/home",
+      "permanent": false
+    }
+  ],
+  "cleanUrls": false
 }
