@@ -120,6 +120,7 @@ const ALL_ACTIONS = [
 	{ key:'admin-projects',   label:'Projects',           to:'/projects',                 icon:'clipboard-list', roles:['admin','bsa'] },
 	{ key:'admin-dashboard',  label:'Project Dashboard',  to:'/project-dashboard',        icon:'chart-bar',      roles:['admin','bsa'] },
 	{ key:'approval-center',   label:'Approval Center',     to:'/approval-center',          icon:'check-circle',   roles:['admin','bsa','director','pm','accountant','qs','procurement','site-engineer'] },
+	{ key:'voice-to-work',    label:'Voice to Work',       to:'/voice-to-work',             icon:'file-text',      roles:['director','pm','site-engineer','foreman','qs'] },
 	{ key:'admin-boq',        label:'BOQ',                to:'/boq',                      icon:'estimation',     roles:['admin','bsa'] },
 	{ key:'admin-finance',    label:'Financial Overview', to:'/project-finance/overview', icon:'wallet',         roles:['admin','bsa'] },
 	{ key:'admin-attendance', label:'Field Attendance',   to:'/field-attendance',         icon:'users-2',        roles:['admin','bsa'] },
