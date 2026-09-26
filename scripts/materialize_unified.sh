@@ -36,6 +36,7 @@ rsync -a --delete \
   --exclude 'vercel.json' \
   --exclude 'api/' \
   --exclude 'frontend/vite.config.js' \
+  --exclude 'package.json' \
   "$WORK/buildsuite/" "$ROOT/"
 
 echo "==> Applying IDEAIL product identity"
