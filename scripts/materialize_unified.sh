@@ -11,9 +11,6 @@ OCE_URL="https://github.com/tayebkedadouche09-a11y/Ideal-tayeb2.git"
 
 echo "==> Cloning source projects"
 git clone --depth 1 --branch develop "$BUILD_URL" "$WORK/buildsuite"
-git clone --depth 1 --branch master "$CMS_URL" "$WORK/cms_v15"
-git clone --depth 1 --branch main "$OCE_URL" "$WORK/openconstruction"
-
 echo "==> Materializing canonical BuildSuite source"
 # BuildSuite is the only source copied into the active runtime because it is the
 # chosen canonical ERPNext v16 construction engine. Other source systems are

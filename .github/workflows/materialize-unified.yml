@@ -7,6 +7,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: ideail-materialize-main
+  cancel-in-progress: true
+
 jobs:
   materialize:
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
