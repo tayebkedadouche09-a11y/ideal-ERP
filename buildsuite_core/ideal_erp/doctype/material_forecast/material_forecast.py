@@ -92,7 +92,7 @@ class MaterialForecast(Document):
         if not forecast.items:
             frappe.throw("No BOQ material lines could be matched to stock Items.")
 
-        forecast.insert(ignore_permissions=True)
+        forecast.insert()
         return {
             "name": forecast.name,
             "project": forecast.project,
