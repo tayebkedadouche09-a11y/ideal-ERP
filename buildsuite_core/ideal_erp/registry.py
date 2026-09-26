@@ -31,6 +31,7 @@ CAPABILITIES = {
     "cad_bim_takeoff": {"source": "Ideal-tayeb2", "mode": "native", "dependencies": ["boq", "cost_codes", "project_execution"]},
     "company_intelligence": {"source": "IDEAIL", "mode": "native", "dependencies": ["evm_5d", "advanced_schedule", "material_planning"]},
     "resin_epoxy": {"source": "IDEAIL", "mode": "native", "dependencies": ["estimation", "cost_codes"]},
+    "resin_to_quotation": {"source": "IDEAIL", "mode": "native", "dependencies": ["resin_epoxy", "commercial_posting"]},
     "algeria_dzd": {"source": "IDEAIL", "mode": "native", "dependencies": ["accounting", "commercial_posting"]},
     "forecasting": {"source": "IDEAIL", "mode": "native", "dependencies": ["company_intelligence", "evm_5d"]},
     "anomaly_detection": {"source": "IDEAIL", "mode": "native", "dependencies": ["evm_5d", "material_planning"]},
