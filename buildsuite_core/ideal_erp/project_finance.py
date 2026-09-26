@@ -12,9 +12,11 @@ def calculate_project_finance(
     outstanding_gross: float,
     actual_cost: float,
     open_commitment: float = 0.0,
+    invoiced_gross: float | None = None,
 ) -> dict[str, Any]:
     contract = max(0.0, float(contract_value))
     invoiced = max(0.0, float(invoiced_net))
+    gross_invoiced = max(invoiced, float(invoiced_gross if invoiced_gross is not None else invoiced))
     outstanding = max(0.0, float(outstanding_gross))
     cost = max(0.0, float(actual_cost))
     commitment = max(0.0, float(open_commitment))
@@ -31,7 +33,7 @@ def calculate_project_finance(
         "unbilled_contract_value": round(unbilled, 2),
         "invoiced_net": round(invoiced, 2),
         "outstanding": round(outstanding, 2),
-        "estimated_cash_collected": round(max(0.0, invoiced - outstanding), 2),
+        "estimated_cash_collected": round(max(0.0, gross_invoiced - outstanding), 2),
         "actual_cost": round(cost, 2),
         "gross_profit_on_invoiced": round(gross_profit, 2),
         "margin_percent_on_invoiced": round(margin_pct, 4),
