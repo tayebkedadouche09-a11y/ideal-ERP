@@ -592,3 +592,13 @@ def project_360(project: str) -> dict:
             "Company Intelligence",
         ],
     }
+
+
+@frappe.whitelist(methods=["POST"])
+def create_material_forecast_from_boq(boq: str, waste_pct: float = 5) -> dict:
+    """Create a draft Material Forecast from the approved BOQ's material lines."""
+    doc = frappe.get_doc("BOQ", boq)
+    doc.check_permission("read")
+    from buildsuite_core.ideal_erp.doctype.material_forecast.material_forecast import MaterialForecast
+
+    return MaterialForecast.from_approved_boq(boq, waste_pct=float(waste_pct))
