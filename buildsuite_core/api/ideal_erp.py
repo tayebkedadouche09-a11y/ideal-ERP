@@ -994,3 +994,109 @@ def voice_to_work(
         }
 
     return {"proposal": proposal, "created": False}
+
+
+@frappe.whitelist()
+def company_intelligence_live(limit: int = 100) -> dict:
+    """Build evidence-first Company Intelligence from live project records."""
+    from frappe.utils import date_diff, flt, getdate, nowdate
+    from buildsuite_core.api import boq_actuals
+    from buildsuite_core.ideal_erp.intelligence.company_intelligence import ProjectSignal, analyze_projects
+
+    company = frappe.db.get_single_value("Global Defaults", "default_company")
+    if not company:
+        companies = frappe.get_all("Company", filters={"is_group": 0}, pluck="name", limit=1)
+        company = companies[0] if companies else None
+
+    projects = frappe.get_all(
+        "Project",
+        filters={"company": company, "status": ["!=", "Cancelled"]} if company else {"status": ["!=", "Cancelled"]},
+        fields=[
+            "name",
+            "project_name",
+            "percent_complete",
+            "expected_start_date",
+            "expected_end_date",
+            "estimated_costing",
+        ],
+        order_by="modified desc",
+        limit_page_length=max(1, min(int(limit), 200)),
+    )
+
+    today = getdate(nowdate())
+    signals = []
+    project_rows = []
+    for project_row in projects:
+        contract = _live_approved_contract_value(project_row.name)
+        actuals = boq_actuals.get_actuals_summary(project_row.name)
+        forecast = frappe.get_all(
+            "Material Forecast",
+            filters={"project": project_row.name},
+            fields=["name", "total_forecast_qty_value"],
+            order_by="modified desc",
+            limit=1,
+        )
+        shortage_value = 0.0
+        forecast_value = flt(forecast[0].total_forecast_qty_value) if forecast else 0.0
+        if forecast:
+            forecast_items = frappe.get_all(
+                "Material Forecast Item",
+                filters={"parent": forecast[0].name, "parenttype": "Material Forecast"},
+                fields=["qty_to_order", "estimated_rate"],
+            )
+            shortage_value = sum(flt(row.qty_to_order) * flt(row.estimated_rate) for row in forecast_items)
+
+        planned_progress = 0.0
+        if project_row.expected_start_date and project_row.expected_end_date:
+            total_days = max(1, date_diff(project_row.expected_end_date, project_row.expected_start_date))
+            elapsed = date_diff(today, project_row.expected_start_date)
+            planned_progress = max(0.0, min(100.0, elapsed / total_days * 100.0))
+
+        forecast_days = 0.0
+        baseline_days = 0.0
+        if project_row.expected_start_date and project_row.expected_end_date:
+            baseline_days = max(0.0, float(date_diff(project_row.expected_end_date, project_row.expected_start_date)))
+            if project_row.expected_end_date and getdate(project_row.expected_end_date) < today and flt(project_row.percent_complete) < 100:
+                forecast_days = baseline_days + max(0, date_diff(today, project_row.expected_end_date))
+
+        material_variance_pct = shortage_value / forecast_value * 100.0 if forecast_value else 0.0
+        signals.append(
+            ProjectSignal(
+                project=project_row.name,
+                baseline_cost=contract,
+                actual_cost=flt(actuals["total"]),
+                planned_progress_pct=planned_progress,
+                actual_progress_pct=flt(project_row.percent_complete),
+                baseline_end_days=baseline_days,
+                forecast_end_days=forecast_days or baseline_days,
+                material_variance_pct=material_variance_pct,
+            )
+        )
+        project_rows.append(
+            {
+                "project": project_row.name,
+                "project_name": project_row.project_name or project_row.name,
+                "contract_value": contract,
+                "actual_cost": flt(actuals["total"]),
+                "planned_progress_pct": round(planned_progress, 1),
+                "actual_progress_pct": flt(project_row.percent_complete),
+                "material_variance_pct": round(material_variance_pct, 1),
+            }
+        )
+
+    insights = analyze_projects(signals)
+    return {
+        "company": company,
+        "project_count": len(project_rows),
+        "projects": project_rows,
+        "insights": [
+            {
+                "project": item.project,
+                "kind": item.kind,
+                "severity": item.severity,
+                "message": item.message,
+                "evidence": list(item.evidence),
+            }
+            for item in insights
+        ],
+    }
