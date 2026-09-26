@@ -20,6 +20,7 @@ import frappe
 from frappe.utils import add_days, date_diff, flt, getdate, nowdate
 
 from buildsuite_core.utils.project import default_company
+from buildsuite_core.ideal_erp.briefing import build_daily_briefing
 
 _ACTIVE = ("New", "Ongoing", "Delayed")
 _BOQ_RANK = {"Approved": 2, "Submitted": 1}
@@ -869,6 +870,15 @@ def get_home_dashboard():
 			),
 		]
 
+	briefing = build_daily_briefing(
+		role=role,
+		greeting_sub=_GREETINGS.get(role, "Here is a snapshot of your work today."),
+		alerts=alerts,
+		cta=cta if "cta" in locals() else None,
+		active_projects=active_ct,
+		at_risk_projects=at_risk,
+	)
+
 	title, sub, cta_label, to, cta_slug = _CTAS.get(role, _CTAS["site-engineer"])
 	cta = {"title": title, "sub": sub, "cta": cta_label, "to": to, "slug": cta_slug}
 
@@ -878,6 +888,7 @@ def get_home_dashboard():
 		"snapshot": snapshot,
 		"cta": cta,
 		"alerts": alerts,
+		"briefing": briefing,
 		# --- legacy fields still rendered by DashboardView (/dashboard) ---
 		"kpis": {
 			"active_projects": active_ct,
