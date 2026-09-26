@@ -817,13 +817,12 @@ def create_quotation_from_resin_estimate(customer: str, estimate: dict, project:
 def approval_center(limit: int = 100) -> dict:
     """Return actionable approval/workflow records for the current user."""
     from frappe.model.workflow import get_transitions, get_workflow, get_workflow_name
-    from frappe.utils import quote
+    from urllib.parse import quote
 
     specs = [
         ("Stage Planning", "workflow_state", {"Pending Approval"}),
         ("Scope Change Order", "status", {"Pending Approval"}),
         ("Material Request", "workflow_state", {"Pending Approval"}),
-        ("Interim Payment Certificate", "status", {"Submitted"}),
         ("Retention Release", "status", {"Draft"}),
         ("Sales Invoice", "workflow_state", {"Pending Approval"}),
         ("Purchase Order", "workflow_state", {"Pending Approval"}),
