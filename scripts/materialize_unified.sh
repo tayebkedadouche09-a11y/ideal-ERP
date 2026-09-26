@@ -100,6 +100,8 @@ BuildSuite owns:
 IDEAIL capability packs extend those models instead of replacing them.
 EOF
 
+mkdir -p config docs/source-lineage
+
 echo "==> Generating a single source inventory"
 python3 - <<'PY'
 import json
