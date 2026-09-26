@@ -42,6 +42,8 @@ CAPABILITIES = {
     "approvals": {"source": "IDEAIL", "mode": "native", "dependencies": ["project_execution", "documents"]},
     "site_inventory": {"source": "Ideal-tayeb2", "mode": "native", "dependencies": ["material_planning", "stock"]},
     "project_360": {"source": "IDEAIL", "mode": "native", "dependencies": ["project_execution", "boq", "procurement", "project_finance", "accounting", "stock"]},
+    "daily_briefing": {"source": "IDEAIL", "mode": "native", "dependencies": ["company_intelligence", "project_360", "approvals"]},
+    "smart_priority_engine": {"source": "IDEAIL", "mode": "native", "dependencies": ["daily_briefing", "risk", "change_intelligence"]},
 }
 
 
