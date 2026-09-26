@@ -8,19 +8,10 @@
 // get_workspace_shortcuts). A BSA at a customer org can reorder / hide / add
 // shortcuts via /settings/workspace-structure without developer involvement.
 //
-// Session 35 — EXPLORATORY DESIGN VISUALISATION (additive, NOT M1 scope):
-//   1. A prominent Project Dashboard tile rendered ABOVE the shortcuts grid,
-//      gated to "owner" roles (Director / PM / Admin / Accountant / BSA).
-//      Routes to /app/project-dashboard (Vue composite landing inside Desk).
-//   2. A separate "Reports" group rendered BELOW the shortcuts grid with 5
-//      hardcoded Frappe-style report tiles. Each tile routes to
-//      /app/reports/:slug (a Desk-styled stub).
-//
-// Both additions are HARDCODED here — in production they would be configured
-// via Workspace Structure Settings DocType records (tile_type discriminator,
-// per-tile role visibility, dashboard / report references). The hardcoding
-// is deliberate and clearly marked: these are visual mockups for stakeholder
-// review of dashboard + report layout, not production architecture.
+// Project Dashboard and report shortcuts are live workspace surfaces.
+// Report rows come from Workspace Setting; legacy /reports/:slug routes are
+// dispatched to corresponding live report/module destinations, so the SPA does
+// not render fabricated report data.
 
 import { computed, ref, onMounted } from "vue";
 import { RouterLink } from "vue-router";
