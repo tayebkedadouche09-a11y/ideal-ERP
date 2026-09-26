@@ -604,3 +604,66 @@ def create_material_forecast_from_boq(boq: str, waste_pct: float = 5) -> dict:
     from buildsuite_core.ideal_erp.doctype.material_forecast.material_forecast import MaterialForecast
 
     return MaterialForecast.from_approved_boq(boq, waste_pct=float(waste_pct))
+
+
+@frappe.whitelist(methods=["POST"])
+def create_quotation_from_resin_estimate(customer: str, estimate: dict, project: str | None = None, title: str = "Resin / Epoxy Works", validity_days: int = 30) -> dict:
+    """Create a native ERPNext Quotation draft from a confirmed resin estimate."""
+    if not customer:
+        frappe.throw("Customer is required.")
+    if not frappe.has_permission("Quotation", "create"):
+        frappe.throw("You are not allowed to create quotations.", frappe.PermissionError)
+
+    from buildsuite_core.api.invoice import ensure_invoice_item
+    from buildsuite_core.utils.project import default_company
+    from frappe.utils import add_days, nowdate, flt
+
+    company = (
+        frappe.db.get_value("Project", project, "company")
+        if project
+        else default_company()
+    ) or default_company()
+
+    quote = frappe.new_doc("Quotation")
+    quote.quotation_to = "Customer"
+    quote.party_name = customer
+    quote.company = company
+    quote.project = project or None
+    quote.title = title
+    quote.transaction_date = nowdate()
+    quote.valid_till = add_days(nowdate(), max(0, int(validity_days)))
+    quote.currency = frappe.db.get_value("Company", company, "default_currency")
+
+    service_item = ensure_invoice_item()
+    total_cost = flt(estimate.get("total_cost"))
+    material_cost = flt(estimate.get("material_cost"))
+    labor_cost = flt(estimate.get("labor_cost"))
+    equipment_cost = flt(estimate.get("equipment_cost"))
+    total_price = flt(estimate.get("quoted_total") or estimate.get("selling_total") or total_cost)
+
+    if total_price <= 0:
+        frappe.throw("The estimate must produce a quotation amount greater than zero.")
+
+    quote.append(
+        "items",
+        {
+            "item_code": service_item,
+            "item_name": title,
+            "description": (
+                f"Area {flt(estimate.get('area_m2')):g} m² · "
+                f"Thickness {flt(estimate.get('thickness_mm')):g} mm · "
+                f"Material {material_cost:,.2f} · Labour {labor_cost:,.2f} · Equipment {equipment_cost:,.2f}"
+            ),
+            "qty": 1,
+            "rate": total_price,
+        },
+    )
+    quote.insert()
+    return {
+        "name": quote.name,
+        "customer": customer,
+        "project": project,
+        "total_cost": total_cost,
+        "quoted_total": total_price,
+        "source": "resin_epoxy_estimator",
+    }
