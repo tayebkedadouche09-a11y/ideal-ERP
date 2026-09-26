@@ -870,17 +870,18 @@ def get_home_dashboard():
 			),
 		]
 
+title, sub, cta_label, to, cta_slug = _CTAS.get(role, _CTAS["site-engineer"])
+	cta = {"title": title, "sub": sub, "cta": cta_label, "to": to, "slug": cta_slug}
+
 	briefing = build_daily_briefing(
 		role=role,
 		greeting_sub=_GREETINGS.get(role, "Here is a snapshot of your work today."),
 		alerts=alerts,
-		cta=cta if "cta" in locals() else None,
+		cta=cta,
 		active_projects=active_ct,
 		at_risk_projects=at_risk,
 	)
 
-	title, sub, cta_label, to, cta_slug = _CTAS.get(role, _CTAS["site-engineer"])
-	cta = {"title": title, "sub": sub, "cta": cta_label, "to": to, "slug": cta_slug}
 
 	return {
 		"role": role,
