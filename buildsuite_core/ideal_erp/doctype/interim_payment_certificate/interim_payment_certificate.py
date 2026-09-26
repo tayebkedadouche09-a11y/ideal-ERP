@@ -3,6 +3,8 @@ from frappe.model.document import Document
 from frappe.utils import flt, nowdate
 
 from buildsuite_core.ideal_erp.integrated_flow import calculate_ipc
+from buildsuite_core.api import invoice as invoice_api
+from buildsuite_core.api.workflow import workflow_active
 
 
 class InterimPaymentCertificate(Document):
@@ -65,30 +67,54 @@ class InterimPaymentCertificate(Document):
         self._create_sales_invoice()
 
     def on_cancel(self):
-        if self.sales_invoice_ref:
-            invoice = frappe.get_doc("Sales Invoice", self.sales_invoice_ref)
-            if invoice.docstatus == 1:
-                invoice.cancel()
+        self._cancel_sales_invoice()
         self.db_set("status", "Draft")
 
     def _create_sales_invoice(self):
-        if self.sales_invoice_ref:
-            return
-        invoice = frappe.new_doc("Sales Invoice")
-        invoice.customer = self.client
-        invoice.company = self.company
-        invoice.currency = self.currency
-        if hasattr(invoice, "project"):
-            invoice.project = self.project
-        invoice.append(
-            "items",
-            {
-                "item_name": f"IPC #{self.ipc_number} — {self.project}",
-                "description": f"Progress Billing — {self.ipc_title}",
-                "qty": 1,
-                "rate": self.net_payable_this_period,
-                "uom": "Nos",
-            },
+        if self.sales_invoice_ref and frappe.db.exists("Sales Invoice", self.sales_invoice_ref):
+            return self.sales_invoice_ref
+
+        result = invoice_api.save_invoice(
+            frappe.as_json(
+                {
+                    "customer": self.client,
+                    "project": self.project,
+                    "date": nowdate(),
+                    "due_date": nowdate(),
+                    "items": [
+                        {
+                            "description": f"Progress Billing — {self.ipc_title}",
+                            "qty": 1,
+                            "rate": flt(self.net_payable_this_period),
+                        }
+                    ],
+                }
+            )
         )
-        invoice.insert(ignore_permissions=True)
-        self.db_set("sales_invoice_ref", invoice.name)
+        invoice_name = result["name"]
+        self.db_set("sales_invoice_ref", invoice_name)
+
+        if workflow_active("Sales Invoice"):
+            self.db_set("status", "Invoice Pending")
+            return invoice_name
+
+        invoice = frappe.get_doc("Sales Invoice", invoice_name)
+        try:
+            invoice.check_permission("submit")
+        except frappe.PermissionError:
+            self.db_set("status", "Invoice Pending")
+            return invoice_name
+
+        invoice.submit()
+        self.db_set("status", "Invoiced")
+        return invoice_name
+
+    def _cancel_sales_invoice(self):
+        if not self.sales_invoice_ref or not frappe.db.exists("Sales Invoice", self.sales_invoice_ref):
+            return
+        invoice = frappe.get_doc("Sales Invoice", self.sales_invoice_ref)
+        if invoice.docstatus == 1:
+            invoice.cancel()
+        elif invoice.docstatus == 0:
+            frappe.delete_doc("Sales Invoice", invoice.name, ignore_permissions=True)
+        self.db_set("sales_invoice_ref", None)
