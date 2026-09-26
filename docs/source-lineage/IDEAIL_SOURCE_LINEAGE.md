@@ -1,10 +1,10 @@
 # IDEAIL ERP Source Lineage
 
-The active runtime is one Frappe/ERPNext application.
+IDEAIL ERP is one active Frappe/ERPNext runtime.
 
-## Canonical runtime source
+## Canonical runtime
 
-Ideal-tayeb / BuildSuite Core
+Ideal-tayeb / BuildSuite Core:
 - ERPNext v16 construction execution
 - project spine
 - BOQ and cost codes
@@ -16,46 +16,30 @@ Ideal-tayeb / BuildSuite Core
 - project finance
 - reporting
 
-## Selective feature references
+## Selective feature sources
 
-Ideal-tayeb1 / Construction Management Suite
+Ideal-tayeb1 contributes behaviour requirements:
 - client progress billing / IPC
 - retention release
 - material planning
-- compact regional construction workflows
 
-These are ported as behaviour and workflow requirements, not as a second active ERP.
-
-Ideal-tayeb2 / OpenConstructionERP
-- AI-assisted estimation
+Ideal-tayeb2 contributes capability requirements:
+- AI estimation
 - semantic cost matching
 - advanced planning
-- EVM / 5D controls
+- EVM/5D
 - risk/change intelligence
-- voice/evidence capture
-- document/CDE concepts
-- CAD/BIM/takeoff concepts
+- voice/evidence
+- documents/CDE
+- CAD/BIM/takeoff
 
-These become additive IDEAIL capability packs. The OpenConstructionERP runtime is not embedded beside ERPNext.
+These sources are not embedded as parallel ERP runtimes.
 
 ## Duplicate-elimination rule
 
-One domain = one canonical data model and implementation.
+One domain = one canonical implementation.
 
-ERPNext owns:
-- ledger
-- accounting
-- customers
-- suppliers
-- stock
-- payments
-
-BuildSuite owns:
-- project execution
-- BOQ
-- work packages
-- task/schedule execution
-- construction cost coding
-- subcontract operations
-
-IDEAIL capability packs extend those models instead of replacing them.
+ERPNext owns accounting, stock, parties and payment posting.
+BuildSuite owns project execution, BOQ, construction cost coding and
+construction operations.
+IDEAIL-native capabilities attach to those models instead of replacing them.

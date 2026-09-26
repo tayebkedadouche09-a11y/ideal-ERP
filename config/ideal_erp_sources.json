@@ -5,11 +5,7 @@
   "feature_sources": [
     {
       "source": "tayebkedadouche09-a11y/ideal-tayeb1@master",
-      "ports": [
-        "progress billing",
-        "retention",
-        "material planning"
-      ]
+      "ports": ["progress billing", "retention", "material planning"]
     },
     {
       "source": "tayebkedadouche09-a11y/Ideal-tayeb2@main",
