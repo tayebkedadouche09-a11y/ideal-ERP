@@ -1,83 +1,91 @@
-# IDEAIL ERP — Capability Ports
+# IDEAIL ERP — Unified Capability Spine
 
-The merge is now one runtime. The following capabilities are deliberately added
-around the canonical BuildSuite/ERPNext models rather than copied as second
-applications.
+IDEAIL ERP is one Frappe/ERPNext runtime. The three source repositories were
+merged by capability, not by stacking applications beside each other.
 
-## From Ideal-tayeb1
+## Canonical ownership
 
-### Client progress billing
-Ports the IPC/progress-billing idea into the same project contract and invoice
-flow. It must terminate in ERPNext Sales Invoice documents.
+ERPNext remains the system of record for accounting, stock, parties, invoices,
+payments and posting.
 
-### Retention release
-Adds a release workflow against the canonical project/client billing records.
-No second receivable or accounting engine is introduced.
+BuildSuite Core remains the system of record for Project, Task, BOQ, Cost Codes,
+construction execution, procurement, subcontract, workforce, equipment and
+schedule records.
 
-### Material planning
-Adds forecast/requirement views over ERPNext stock and BuildSuite project
-consumption. It does not create another inventory ledger.
+IDEAIL adds intelligence and industry workflows around those canonical records.
 
-## From Ideal-tayeb2
+## Connected flow
 
-### AI estimation
-AI drafts BOQ/rate/assumption candidates. Human confirmation is required before
-a canonical BOQ or quote is mutated.
+The application now exposes one connected project spine:
 
-### Semantic cost matching
-IDEAIL now contains an offline baseline matcher. Exact/token matching is the
-fallback; an embedding provider can later replace or augment it without a
-second catalog.
+Project -> BOQ / estimate -> technical takeoff -> material requirement ->
+stock + consumption + open procurement -> Task schedule -> actual cost ->
+EVM / 5D -> progress billing / IPC -> ERPNext Sales Invoice -> retention ->
+change intelligence -> risk -> Company Intelligence -> forecasting / anomalies /
+lessons learned.
 
-### Advanced schedule / 4D
-Future adapter targets the canonical Task/Schedule records. The existing
-schedule engine remains the source of truth.
+Field evidence is another input channel on the same spine:
 
-### EVM / 5D
-EVM and cost-model calculations consume canonical project baseline/actuals and
-write analytical snapshots only. Accounting remains ERPNext.
+mobile photo / site diary / voice capture -> draft evidence -> approval gate ->
+Project / Task / document evidence -> intelligence.
 
-### Risk / change intelligence
-Risk and change analysis reference existing project, task, cost and change
-records. They do not create parallel project masters.
+No step creates a second Project, BOQ, Stock Ledger or Accounting Ledger.
 
-### Voice / evidence
-Voice is a capture channel. It produces a draft structured action which follows
-the normal validate/approve/post workflow.
+## Source contributions
 
-### Documents / CDE
-Document intelligence enriches project files and metadata; it does not replace
-ERPNext/Frappe file storage.
+### Ideal-tayeb1
 
-### CAD / BIM / takeoff
-These are adapters connected to Project, BOQ, Cost Code and Task. The digital
-construction layer never becomes a second ERP.
+Implemented into the canonical runtime:
 
-## IDEAIL-native
+- Client progress billing / IPC
+- Retention release with over-release protection
+- Material forecast connected to stock, project consumption and open purchase orders
 
-### Company Intelligence
-A deterministic, evidence-first rule layer is already implemented. It can be
-extended with historical similarity, LLM explanation and forecasting later.
+### Ideal-tayeb2
 
-### Resin / epoxy technical estimator
-A pure calculation engine is already implemented for area, thickness, solids,
-density, waste, primer, labour and equipment. The estimator returns a cost
-draft; the project/quote transaction remains canonical.
+Implemented as connected capability contracts and deterministic adapters:
 
-### Algeria / DZD
-The localization layer remains part of the unified application, not a country
-fork.
+- AI-style estimation draft with canonical cost matching and mandatory confirmation
+- Advanced schedule analysis / critical path
+- EVM / 5D analytical snapshots
+- Risk and change intelligence
+- Voice evidence classification
+- Project document/CDE metadata normalization
+- CAD/BIM/takeoff normalization into BOQ-review candidates
+- Site diary, photo evidence, approvals and site-inventory variance helpers
+- Forecasting, anomaly detection and lessons learned
 
-## Non-duplication rule
+Actual external LLM, speech-to-text, CAD/BIM parser or embedding provider can be
+plugged in behind the same interfaces. Those providers are not allowed to become
+a second system of record.
 
-For every new feature ask:
+## Industry layer
 
-1. Which canonical document already represents this fact?
-2. Can this capability attach to that document instead of creating another
-   master?
-3. Does the output need an ERPNext posting, an analytical snapshot, or only a
-   draft?
-4. Where is the evidence stored?
+IDEAIL-native technical estimation supports:
 
-If a feature would create a second ledger, stock engine, BOQ master or project
-master, it is rejected and re-designed as an adapter.
+- Resin / epoxy
+- Industrial flooring
+- Technical coatings
+- Waterproofing and decorative-concrete commercial calculations
+
+The estimator creates technical/cost drafts. Confirmation posts through the
+canonical project, BOQ and ERPNext commercial flow.
+
+## Localization
+
+The same application supports FR / AR / EN, Arabic RTL and DZD-ready commercial
+formatting. Tax and accounting rules remain configurable in ERPNext rather than
+hard-coded inside the industry calculators.
+
+## Non-duplication contract
+
+For every future capability:
+
+1. Attach to the canonical document that already owns the fact.
+2. Use ERPNext posting when money or stock must be posted.
+3. Use analytical snapshots for EVM/risk/forecasting.
+4. Keep AI/voice/takeoff outputs as drafts until a human confirms them.
+5. Store evidence in the shared Frappe document/file layer.
+
+A feature that introduces a second project master, BOQ master, stock engine,
+commercial ledger or accounting ledger is rejected and redesigned.
